@@ -82,7 +82,7 @@ yarn preview
 - Tailwind CSS v4
 - shadcn/ui - Component library
 - AI SDK Elements - Conversation components
-- @ag-ui/client
+- @ag-ui/core (types for AG-UI protocol)
 
 ## License
 

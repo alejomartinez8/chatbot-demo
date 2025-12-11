@@ -17,7 +17,6 @@ import {
 } from '@/components/ai-elements/message';
 
 export function ChatSidebar() {
-  const [isOpen, setIsOpen] = useState<boolean>(true);
   const [input, setInput] = useState<string>('');
   
   // Use the custom hook to manage agent communication
@@ -40,7 +39,7 @@ export function ChatSidebar() {
         'fixed right-0 top-0 w-[400px] h-screen bg-white',
         'shadow-[-2px_0_10px_rgba(0,0,0,0.1)] flex flex-col',
         'transition-transform duration-300 ease-in-out z-[1000]',
-        isOpen ? 'translate-x-0' : 'translate-x-full'
+        'translate-x-0'
       )}
     >
       <div className="p-5 border-b border-gray-200 flex justify-between items-center bg-gray-50">
@@ -62,119 +61,104 @@ export function ChatSidebar() {
             </span>
           )}
         </div>
-        <button 
-          className={clsx(
-            'bg-transparent border-none text-2xl cursor-pointer',
-            'text-gray-600 px-2.5 py-1 rounded',
-            'hover:bg-gray-200 transition-colors'
-          )}
-          onClick={() => setIsOpen(!isOpen)}
-          aria-label="Toggle sidebar"
-        >
-          {isOpen ? '−' : '+'}
-        </button>
       </div>
 
-      {isOpen && (
-        <>
-          <Conversation className="flex-1" style={{ minHeight: 0 }}>
-            <ConversationContent>
-              {messages.length === 0 ? (
-                <ConversationEmptyState
-                  icon={<MessageSquare className="size-12" />}
-                  title={
-                    isConnecting
-                      ? 'Connecting to agent...'
-                      : !isConnected
-                      ? '⚠️ Agent not connected'
-                      : 'Welcome! Start a conversation.'
-                  }
-                  description={
-                    !isConnecting && !isConnected
-                      ? 'Make sure the agent is running on localhost:8000'
-                      : 'Type a message below to begin chatting.'
-                  }
-                />
-              ) : (
-                <>
-                  {messages.map((message, messageIndex) => (
-                    <Fragment key={message.id}>
-                      <Message from={message.role}>
-                        <MessageContent>
-                          <MessageResponse>{message.content}</MessageResponse>
-                        </MessageContent>
-                      </Message>
-                      {message.role === 'assistant' && messageIndex === messages.length - 1 && (
-                        <MessageActions>
-                          <MessageAction
-                            onClick={() => navigator.clipboard.writeText(message.content)}
-                            label="Copy"
-                          >
-                            <CopyIcon className="size-3" />
-                          </MessageAction>
-                          <MessageAction
-                            onClick={() => {
-                              const lastUserMessage = messages[messages.length - 2];
-                              if (lastUserMessage?.role === 'user') {
-                                sendMessage(lastUserMessage.content);
-                              }
-                            }}
-                            label="Retry"
-                          >
-                            <RefreshCcwIcon className="size-3" />
-                          </MessageAction>
-                        </MessageActions>
-                      )}
-                    </Fragment>
-                  ))}
+      <Conversation className="flex-1" style={{ minHeight: 0 }}>
+        <ConversationContent>
+          {messages.length === 0 ? (
+            <ConversationEmptyState
+              icon={<MessageSquare className="size-12" />}
+              title={
+                isConnecting
+                  ? 'Connecting to agent...'
+                  : !isConnected
+                  ? '⚠️ Agent not connected'
+                  : 'Welcome! Start a conversation.'
+              }
+              description={
+                !isConnecting && !isConnected
+                  ? 'Make sure the agent is running on localhost:8000'
+                  : 'Type a message below to begin chatting.'
+              }
+            />
+          ) : (
+            <>
+              {messages.map((message, messageIndex) => (
+                <Fragment key={message.id}>
+                  <Message from={message.role}>
+                    <MessageContent>
+                      <MessageResponse>{message.content}</MessageResponse>
+                    </MessageContent>
+                  </Message>
+                  {message.role === 'assistant' && messageIndex === messages.length - 1 && (
+                    <MessageActions>
+                      <MessageAction
+                        onClick={() => navigator.clipboard.writeText(message.content)}
+                        label="Copy"
+                      >
+                        <CopyIcon className="size-3" />
+                      </MessageAction>
+                      <MessageAction
+                        onClick={() => {
+                          const lastUserMessage = messages[messages.length - 2];
+                          if (lastUserMessage?.role === 'user') {
+                            sendMessage(lastUserMessage.content);
+                          }
+                        }}
+                        label="Retry"
+                      >
+                        <RefreshCcwIcon className="size-3" />
+                      </MessageAction>
+                    </MessageActions>
+                  )}
+                </Fragment>
+              ))}
 
-                  {isLoading && (
-                    <div className="flex items-start">
-                      <div className="max-w-[80%]">
-                        <div className="px-4 py-3 bg-gray-100 text-gray-800 rounded-[18px_18px_18px_4px] shadow-sm">
-                          <div className="flex gap-1">
-                            <span className="animate-bounce">.</span>
-                            <span className="animate-bounce delay-100">.</span>
-                            <span className="animate-bounce delay-200">.</span>
-                          </div>
-                        </div>
+              {isLoading && (
+                <div className="flex items-start">
+                  <div className="max-w-[80%]">
+                    <div className="px-4 py-3 bg-gray-100 text-gray-800 rounded-[18px_18px_18px_4px] shadow-sm">
+                      <div className="flex gap-1">
+                        <span className="animate-bounce">.</span>
+                        <span className="animate-bounce delay-100">.</span>
+                        <span className="animate-bounce delay-200">.</span>
                       </div>
                     </div>
-                  )}
-                </>
+                  </div>
+                </div>
               )}
-            </ConversationContent>
-            <ConversationScrollButton />
-          </Conversation>
+            </>
+          )}
+        </ConversationContent>
+        <ConversationScrollButton />
+      </Conversation>
 
-          <form className="p-5 border-t border-gray-200 flex gap-2.5 bg-gray-50" onSubmit={handleSubmit}>
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message..."
-              className={clsx(
-                'flex-1 px-4 py-3 border border-gray-200 rounded-full text-sm outline-none',
-                'focus:border-blue-600 transition-colors',
-                'disabled:bg-gray-100 disabled:cursor-not-allowed'
-              )}
-              disabled={isLoading}
-            />
-            <button
-              type="submit"
-              className={clsx(
-                'px-6 py-3 bg-blue-600 text-white border-none rounded-full',
-                'text-sm font-medium cursor-pointer transition-colors',
-                'hover:bg-blue-700',
-                'disabled:bg-gray-300 disabled:cursor-not-allowed'
-              )}
-              disabled={!input.trim() || isLoading}
-            >
-              Send
-            </button>
-          </form>
-        </>
-      )}
+      <form className="p-5 border-t border-gray-200 flex gap-2.5 bg-gray-50" onSubmit={handleSubmit}>
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type your message..."
+          className={clsx(
+            'flex-1 px-4 py-3 border border-gray-200 rounded-full text-sm outline-none',
+            'focus:border-blue-600 transition-colors',
+            'disabled:bg-gray-100 disabled:cursor-not-allowed'
+          )}
+          disabled={isLoading}
+        />
+        <button
+          type="submit"
+          className={clsx(
+            'px-6 py-3 bg-blue-600 text-white border-none rounded-full',
+            'text-sm font-medium cursor-pointer transition-colors',
+            'hover:bg-blue-700',
+            'disabled:bg-gray-300 disabled:cursor-not-allowed'
+          )}
+          disabled={!input.trim() || isLoading}
+        >
+          Send
+        </button>
+      </form>
     </div>
   );
 }
