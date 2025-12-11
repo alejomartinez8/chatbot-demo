@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import clsx from 'clsx';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, CopyIcon, RefreshCcwIcon } from 'lucide-react';
 import { useAgentChat } from '@/lib/hooks/useAgentChat';
 import {
   Conversation,
@@ -8,6 +8,13 @@ import {
   ConversationEmptyState,
   ConversationScrollButton,
 } from '@/components/ai-elements/conversation';
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+  MessageActions,
+  MessageAction,
+} from '@/components/ai-elements/message';
 
 export function ChatSidebar() {
   const [isOpen, setIsOpen] = useState<boolean>(true);
@@ -90,27 +97,35 @@ export function ChatSidebar() {
                 />
               ) : (
                 <>
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={clsx(
-                        'flex flex-col',
-                        message.role === 'user' ? 'items-end' : 'items-start'
+                  {messages.map((message, messageIndex) => (
+                    <Fragment key={message.id}>
+                      <Message from={message.role}>
+                        <MessageContent>
+                          <MessageResponse>{message.content}</MessageResponse>
+                        </MessageContent>
+                      </Message>
+                      {message.role === 'assistant' && messageIndex === messages.length - 1 && (
+                        <MessageActions>
+                          <MessageAction
+                            onClick={() => navigator.clipboard.writeText(message.content)}
+                            label="Copy"
+                          >
+                            <CopyIcon className="size-3" />
+                          </MessageAction>
+                          <MessageAction
+                            onClick={() => {
+                              const lastUserMessage = messages[messages.length - 2];
+                              if (lastUserMessage?.role === 'user') {
+                                sendMessage(lastUserMessage.content);
+                              }
+                            }}
+                            label="Retry"
+                          >
+                            <RefreshCcwIcon className="size-3" />
+                          </MessageAction>
+                        </MessageActions>
                       )}
-                    >
-                      <div className="max-w-[80%]">
-                        <div
-                          className={clsx(
-                            'px-4 py-3 break-words',
-                            message.role === 'user'
-                              ? 'bg-blue-600 text-white rounded-[18px_18px_4px_18px] shadow-md'
-                              : 'bg-gray-100 text-gray-800 rounded-[18px_18px_18px_4px] shadow-sm'
-                          )}
-                        >
-                          {message.content}
-                        </div>
-                      </div>
-                    </div>
+                    </Fragment>
                   ))}
 
                   {isLoading && (
