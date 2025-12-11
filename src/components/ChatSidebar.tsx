@@ -1,22 +1,23 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import clsx from 'clsx';
+import { MessageSquare } from 'lucide-react';
 import { useAgentChat } from '@/lib/hooks/useAgentChat';
+import {
+  Conversation,
+  ConversationContent,
+  ConversationEmptyState,
+  ConversationScrollButton,
+} from '@/components/ai-elements/conversation';
 
 export function ChatSidebar() {
   const [isOpen, setIsOpen] = useState<boolean>(true);
   const [input, setInput] = useState<string>('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Use the custom hook to manage agent communication
   const { messages, isLoading, isConnected, isConnecting, sendMessage } = useAgentChat({
     agentUrl: '/api/agent/',
     threadId: 'chat-thread',
   });
-
-  // Auto-scroll to bottom when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -69,61 +70,67 @@ export function ChatSidebar() {
 
       {isOpen && (
         <>
-          <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
-            {messages.length === 0 && (
-              <div className="text-center text-gray-600 py-10 px-5">
-                {isConnecting ? (
-                  <p>Connecting to agent...</p>
-                ) : !isConnected ? (
-                  <div>
-                    <p className="text-red-600 mb-2">⚠️ Agent not connected</p>
-                    <p className="text-sm">Make sure the agent is running on localhost:8000</p>
-                  </div>
-                ) : (
-                  <p>Welcome! Start a conversation with the chatbot.</p>
-                )}
-              </div>
-            )}
-            
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={clsx(
-                  'flex flex-col',
-                  message.role === 'user' ? 'items-end' : 'items-start'
-                )}
-              >
-                <div className="max-w-[80%]">
-                  <div 
-                    className={clsx(
-                      'px-4 py-3 break-words',
-                      message.role === 'user' 
-                        ? 'bg-blue-600 text-white rounded-[18px_18px_4px_18px] shadow-md'
-                        : 'bg-gray-100 text-gray-800 rounded-[18px_18px_18px_4px] shadow-sm'
-                    )}
-                  >
-                    {message.content}
-                  </div>
-                </div>
-              </div>
-            ))}
-            
-            {isLoading && (
-              <div className="flex items-start">
-                <div className="max-w-[80%]">
-                  <div className="px-4 py-3 bg-gray-100 text-gray-800 rounded-[18px_18px_18px_4px] shadow-sm">
-                    <div className="flex gap-1">
-                      <span className="animate-bounce">.</span>
-                      <span className="animate-bounce delay-100">.</span>
-                      <span className="animate-bounce delay-200">.</span>
+          <Conversation className="flex-1" style={{ minHeight: 0 }}>
+            <ConversationContent>
+              {messages.length === 0 ? (
+                <ConversationEmptyState
+                  icon={<MessageSquare className="size-12" />}
+                  title={
+                    isConnecting
+                      ? 'Connecting to agent...'
+                      : !isConnected
+                      ? '⚠️ Agent not connected'
+                      : 'Welcome! Start a conversation.'
+                  }
+                  description={
+                    !isConnecting && !isConnected
+                      ? 'Make sure the agent is running on localhost:8000'
+                      : 'Type a message below to begin chatting.'
+                  }
+                />
+              ) : (
+                <>
+                  {messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={clsx(
+                        'flex flex-col',
+                        message.role === 'user' ? 'items-end' : 'items-start'
+                      )}
+                    >
+                      <div className="max-w-[80%]">
+                        <div
+                          className={clsx(
+                            'px-4 py-3 break-words',
+                            message.role === 'user'
+                              ? 'bg-blue-600 text-white rounded-[18px_18px_4px_18px] shadow-md'
+                              : 'bg-gray-100 text-gray-800 rounded-[18px_18px_18px_4px] shadow-sm'
+                          )}
+                        >
+                          {message.content}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            <div ref={messagesEndRef} />
-          </div>
+                  ))}
+
+                  {isLoading && (
+                    <div className="flex items-start">
+                      <div className="max-w-[80%]">
+                        <div className="px-4 py-3 bg-gray-100 text-gray-800 rounded-[18px_18px_18px_4px] shadow-sm">
+                          <div className="flex gap-1">
+                            <span className="animate-bounce">.</span>
+                            <span className="animate-bounce delay-100">.</span>
+                            <span className="animate-bounce delay-200">.</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </ConversationContent>
+            <ConversationScrollButton />
+          </Conversation>
 
           <form className="p-5 border-t border-gray-200 flex gap-2.5 bg-gray-50" onSubmit={handleSubmit}>
             <input
