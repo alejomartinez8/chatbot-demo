@@ -6,9 +6,7 @@ import type { RunAgentInput } from '@ag-ui/core';
 import { HttpSseTransport } from './transports/http-sse-transport';
 import { BaseTransport, type ConnectionStatus, type TransportConfig } from './transports/base-transport';
 
-export interface ConnectionConfig extends TransportConfig {}
-
-export type { ConnectionStatus };
+export type { ConnectionStatus, TransportConfig };
 
 /**
  * AG-UI client (defaults to HTTP/SSE). Create once per agent URL and reuse for sends.
@@ -17,7 +15,7 @@ export type { ConnectionStatus };
 export class AgUIClient {
   private transport: BaseTransport;
 
-  constructor(config: ConnectionConfig) {
+  constructor(config: TransportConfig) {
     this.transport = new HttpSseTransport(config);
   }
 
