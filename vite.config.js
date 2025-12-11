@@ -15,4 +15,14 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  /* Proxy configuration for ADK agent */
+  server: {
+    proxy: {
+      '/api/agent': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/agent/, ''),
+      },
+    },
+  },
 })
