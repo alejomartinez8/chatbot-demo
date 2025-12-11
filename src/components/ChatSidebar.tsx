@@ -1,24 +1,30 @@
-import { useState } from 'react'
-import clsx from 'clsx'
+import { useState, useRef, useEffect } from 'react';
+import clsx from 'clsx';
+import { useAgentChat } from '@/lib/hooks/useAgentChat';
 
 export function ChatSidebar() {
-  const [isOpen, setIsOpen] = useState<boolean>(true)
-  const [input, setInput] = useState<string>('')
-  const [messages, setMessages] = useState<Array<{ id: string; role: 'user' | 'assistant'; content: string }>>([])
+  const [isOpen, setIsOpen] = useState<boolean>(true);
+  const [input, setInput] = useState<string>('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Use the custom hook to manage agent communication
+  const { messages, isLoading, isConnected, isConnecting, sendMessage } = useAgentChat({
+    agentUrl: '/api/agent/',
+    threadId: 'chat-thread',
+  });
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    if (!input.trim()) return
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-    const newMessage = {
-      id: crypto.randomUUID(),
-      role: 'user' as const,
-      content: input,
-    }
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
 
-    setMessages([...messages, newMessage])
-    setInput('')
-  }
+    await sendMessage(input);
+    setInput('');
+  };
 
   return (
     <div 
@@ -30,7 +36,24 @@ export function ChatSidebar() {
       )}
     >
       <div className="p-5 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-        <h2 className="m-0 text-xl font-semibold text-gray-800">Chatbot Demo</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="m-0 text-xl font-semibold text-gray-800">Sidebar Chatbot Demo</h2>
+          {isConnecting && (
+            <span className="text-xs text-gray-500">Connecting...</span>
+          )}
+          {!isConnecting && isConnected && (
+            <span className="flex items-center gap-1 text-xs text-green-600">
+              <span className="w-2 h-2 bg-green-600 rounded-full"></span>
+              Connected
+            </span>
+          )}
+          {!isConnecting && !isConnected && (
+            <span className="flex items-center gap-1 text-xs text-red-600">
+              <span className="w-2 h-2 bg-red-600 rounded-full"></span>
+              Disconnected
+            </span>
+          )}
+        </div>
         <button 
           className={clsx(
             'bg-transparent border-none text-2xl cursor-pointer',
@@ -49,7 +72,16 @@ export function ChatSidebar() {
           <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-4">
             {messages.length === 0 && (
               <div className="text-center text-gray-600 py-10 px-5">
-                <p>Welcome! Start a conversation with the chatbot.</p>
+                {isConnecting ? (
+                  <p>Connecting to agent...</p>
+                ) : !isConnected ? (
+                  <div>
+                    <p className="text-red-600 mb-2">⚠️ Agent not connected</p>
+                    <p className="text-sm">Make sure the agent is running on localhost:8000</p>
+                  </div>
+                ) : (
+                  <p>Welcome! Start a conversation with the chatbot.</p>
+                )}
               </div>
             )}
             
@@ -75,6 +107,22 @@ export function ChatSidebar() {
                 </div>
               </div>
             ))}
+            
+            {isLoading && (
+              <div className="flex items-start">
+                <div className="max-w-[80%]">
+                  <div className="px-4 py-3 bg-gray-100 text-gray-800 rounded-[18px_18px_18px_4px] shadow-sm">
+                    <div className="flex gap-1">
+                      <span className="animate-bounce">.</span>
+                      <span className="animate-bounce delay-100">.</span>
+                      <span className="animate-bounce delay-200">.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div ref={messagesEndRef} />
           </div>
 
           <form className="p-5 border-t border-gray-200 flex gap-2.5 bg-gray-50" onSubmit={handleSubmit}>
@@ -88,6 +136,7 @@ export function ChatSidebar() {
                 'focus:border-blue-600 transition-colors',
                 'disabled:bg-gray-100 disabled:cursor-not-allowed'
               )}
+              disabled={isLoading}
             />
             <button
               type="submit"
@@ -97,7 +146,7 @@ export function ChatSidebar() {
                 'hover:bg-blue-700',
                 'disabled:bg-gray-300 disabled:cursor-not-allowed'
               )}
-              disabled={!input.trim()}
+              disabled={!input.trim() || isLoading}
             >
               Send
             </button>
@@ -105,5 +154,5 @@ export function ChatSidebar() {
         </>
       )}
     </div>
-  )
+  );
 }
