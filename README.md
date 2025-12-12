@@ -27,10 +27,11 @@ First, set up the Python weather agent:
 
 ```bash
 # Run the setup script (this installs dependencies)
+cd agent
 ./scripts/setup-agent.sh
 
 # Create .env file in the agent directory with your Google API key
-echo "GOOGLE_API_KEY=your_actual_api_key_here" > agent/.env
+echo "GOOGLE_API_KEY=your_actual_api_key_here" > .env
 ```
 
 Get your API key from: https://aistudio.google.com/apikey
@@ -39,12 +40,14 @@ Get your API key from: https://aistudio.google.com/apikey
 
 ```bash
 # Run the agent (starts on localhost:8000)
+cd agent
 ./scripts/run-agent.sh
 ```
 
 Or if you're on Windows:
 
 ```bash
+cd agent
 scripts\setup-agent.bat
 scripts\run-agent.bat
 ```

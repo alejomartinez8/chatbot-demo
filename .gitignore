@@ -23,3 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 
+# Go binaries
+agent-go-ag-ui/agent-go-ag-ui
+agent-go-ag-ui/*.exe
+
