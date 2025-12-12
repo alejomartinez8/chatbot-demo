@@ -15,41 +15,83 @@ A modern React + Vite chatbot application that connects to agents supporting the
 ## Prerequisites
 
 - Node.js 18+
+- Google API Key for Gemini (get from [Google AI Studio](https://aistudio.google.com/apikey))
+
+**For Python Agent:**
 - Python 3.12+
 - [uv](https://docs.astral.sh/uv/) - Fast Python package installer
-- Google API Key for Gemini
+
+**For Go Agent:**
+- Go 1.24.4 or later - [Download Go](https://go.dev/dl/)
 
 ## Quick Start
 
-### 1. Set Up the Agent
+### 1. Set Up an Agent
 
-First, set up the Python weather agent:
+Choose either the **Python** or **Go** agent:
+
+#### Option A: Python Agent (Weather)
 
 ```bash
 # Run the setup script (this installs dependencies)
-cd agent
+cd agent-python-ag-ui
 ./scripts/setup-agent.sh
 
 # Create .env file in the agent directory with your Google API key
 echo "GOOGLE_API_KEY=your_actual_api_key_here" > .env
 ```
 
-Get your API key from: https://aistudio.google.com/apikey
+**Windows:**
+```bash
+cd agent-python-ag-ui
+scripts\setup-agent.bat
+echo GOOGLE_API_KEY=your_actual_api_key_here > .env
+```
+
+#### Option B: Go Agent (Time)
+
+```bash
+# Run the setup script (this installs dependencies)
+cd agent-go-ag-ui
+./scripts/setup-agent-go.sh
+
+# Create .env file in the agent directory with your Google API key
+echo GOOGLE_API_KEY=your_actual_api_key_here > .env
+```
+
+**Windows:**
+```bash
+cd agent-go-ag-ui
+scripts\setup-agent-go.bat
+echo set GOOGLE_API_KEY=your_actual_api_key_here > .env
+```
 
 ### 2. Start the Agent
 
+#### Python Agent:
 ```bash
 # Run the agent (starts on localhost:8000)
-cd agent
+cd agent-python-ag-ui
 ./scripts/run-agent.sh
 ```
 
-Or if you're on Windows:
-
+**Windows:**
 ```bash
-cd agent
-scripts\setup-agent.bat
+cd agent-python-ag-ui
 scripts\run-agent.bat
+```
+
+#### Go Agent:
+```bash
+# Run the agent (starts on localhost:8000)
+cd agent-go-ag-ui
+./scripts/run-agent-go.sh
+```
+
+**Windows:**
+```bash
+cd agent-go-ag-ui
+scripts\run-agent-go.bat
 ```
 
 ### 3. Start the Frontend
@@ -122,21 +164,37 @@ yarn preview
 - AI SDK Elements - Conversation components
 - @ag-ui/core (types for AG-UI protocol)
 
-### Agent (Python)
+### Agents
+
+**Python Agent:**
 - FastAPI - Web framework
 - Google ADK - Agent Development Kit
 - ag-ui-adk - AG-UI protocol adapter
 - Gemini 2.0 Flash - LLM model
 - httpx - Async HTTP client
 
+**Go Agent:**
+- Go 1.24.4+ - Programming language
+- Google ADK Go - Agent Development Kit for Go
+- google.golang.org/genai - Gemini API client
+- Standard library HTTP/SSE support
+
 ## Agent Features
 
-The included weather agent provides:
+### Python Agent (Weather)
+The Python weather agent provides:
 - Real-time weather information for any location
 - Current temperature, feels-like temperature, humidity
 - Wind speed and gust information
 - Weather conditions (clear, cloudy, rain, snow, etc.)
 - Powered by Open-Meteo API (no API key required for weather data)
+
+### Go Agent (Time)
+The Go time agent provides:
+- Current time information for cities worldwide
+- Timezone lookup using Google Search
+- Real-time streaming responses via Server-Sent Events
+- Powered by Gemini 3 Pro model
 
 ## License
 
