@@ -74,7 +74,8 @@ This agent provides real-time weather information through natural language conve
 
 **Option 1: Using the convenience script (recommended)**
 ```bash
-# From project root
+# From agent directory
+cd agent
 ./scripts/run-agent.sh
 ```
 
