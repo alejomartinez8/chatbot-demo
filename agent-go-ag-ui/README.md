@@ -85,14 +85,24 @@ Visit `http://localhost:5173` and start chatting with the agent!
 
 ## Project Structure
 
+This project follows the [Standard Go Project Layout](https://github.com/golang-standards/project-layout):
+
 ```
 agent-go-ag-ui/
-├── agent.go      # ADK agent implementation
-├── server.go     # AG-UI HTTP/SSE server
-├── main.go       # Application entry point
-├── go.mod        # Go module definition
-├── go.sum        # Dependency checksums
-└── README.md     # This file
+├── cmd/
+│   └── agent/
+│       └── main.go              # Application entry point
+├── internal/
+│   ├── agent/                   # Agent creation and configuration
+│   ├── config/                  # Configuration management
+│   ├── handler/                 # HTTP handler for AG-UI protocol
+│   ├── server/                  # HTTP server setup and lifecycle
+│   ├── session/                 # Session management
+│   └── stream/                  # Agent response streaming
+├── scripts/                     # Build and run scripts
+├── go.mod                       # Go module definition
+├── go.sum                       # Dependency checksums
+└── README.md                    # This file
 ```
 
 ## How It Works
