@@ -24,13 +24,8 @@ A Go-based agent using Google's Agent Development Kit (ADK) with AG-UI protocol 
 Run the setup script to install dependencies:
 
 ```bash
-# Unix/MacOS
 cd agent-go-ag-ui
 ./scripts/setup-agent-go.sh
-
-# Windows
-cd agent-go-ag-ui
-scripts\setup-agent-go.bat
 ```
 
 Or manually:
@@ -46,33 +41,20 @@ go mod tidy
 Create a `.env` file in the `agent-go-ag-ui/` directory:
 
 ```bash
-# Unix/MacOS
 echo 'export GOOGLE_API_KEY="your_actual_api_key_here"' > agent-go-ag-ui/.env
-
-# Windows
-echo set GOOGLE_API_KEY=your_actual_api_key_here > agent-go-ag-ui\.env
 ```
 
 Or set it as an environment variable:
 
 ```bash
-# Unix/MacOS
 export GOOGLE_API_KEY="your_actual_api_key_here"
-
-# Windows
-set GOOGLE_API_KEY=your_actual_api_key_here
 ```
 
 ### 3. Run the Agent
 
 ```bash
-# Unix/MacOS
 cd agent-go-ag-ui
 ./scripts/run-agent-go.sh
-
-# Windows
-cd agent-go-ag-ui
-scripts\run-agent-go.bat
 ```
 
 The agent will start on `http://localhost:8000` (or the port specified in the `PORT` environment variable).
