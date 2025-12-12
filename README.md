@@ -15,9 +15,43 @@ A modern React + Vite chatbot application that connects to agents supporting the
 ## Prerequisites
 
 - Node.js 18+
-- An AG-UI compatible agent running (default: `localhost:8000`)
+- Python 3.12+
+- [uv](https://docs.astral.sh/uv/) - Fast Python package installer
+- Google API Key for Gemini
 
 ## Quick Start
+
+### 1. Set Up the Agent
+
+First, set up the Python weather agent:
+
+```bash
+# Run the setup script (this installs dependencies)
+./scripts/setup-agent.sh
+
+# Create .env file in the agent directory with your Google API key
+echo "GOOGLE_API_KEY=your_actual_api_key_here" > agent/.env
+```
+
+Get your API key from: https://aistudio.google.com/apikey
+
+### 2. Start the Agent
+
+```bash
+# Run the agent (starts on localhost:8000)
+./scripts/run-agent.sh
+```
+
+Or if you're on Windows:
+
+```bash
+scripts\setup-agent.bat
+scripts\run-agent.bat
+```
+
+### 3. Start the Frontend
+
+In a separate terminal:
 
 ```bash
 # Install dependencies
@@ -76,6 +110,7 @@ yarn preview
 
 ## Tech Stack
 
+### Frontend
 - React 19
 - TypeScript
 - Vite
@@ -83,6 +118,22 @@ yarn preview
 - shadcn/ui - Component library
 - AI SDK Elements - Conversation components
 - @ag-ui/core (types for AG-UI protocol)
+
+### Agent (Python)
+- FastAPI - Web framework
+- Google ADK - Agent Development Kit
+- ag-ui-adk - AG-UI protocol adapter
+- Gemini 2.0 Flash - LLM model
+- httpx - Async HTTP client
+
+## Agent Features
+
+The included weather agent provides:
+- Real-time weather information for any location
+- Current temperature, feels-like temperature, humidity
+- Wind speed and gust information
+- Weather conditions (clear, cloudy, rain, snow, etc.)
+- Powered by Open-Meteo API (no API key required for weather data)
 
 ## License
 
