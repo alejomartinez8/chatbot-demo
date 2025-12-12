@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import type { RunAgentInput } from '@ag-ui/core';
 import { AgUIClient } from '@/lib/ag-ui/ag-ui-client';
-import type { InspectorEvent } from '@/lib/ag-ui/types/ag-ui-events';
+import type { TransportEvent } from '@/lib/ag-ui/types/ag-ui-events';
 import { Message } from '@/lib/types';
 
 interface UseAgentChatOptions {
@@ -14,7 +14,6 @@ interface UseAgentChatReturn {
   isLoading: boolean;
   error: string | null;
   isConnected: boolean;
-  isConnecting: boolean;
   sendMessage: (content: string) => Promise<void>;
   clearMessages: () => void;
 }
@@ -27,13 +26,12 @@ export function useAgentChat({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(true);
   const clientRef = useRef<AgUIClient | null>(null);
   const assistantBufferRef = useRef('');
   const assistantMessageIdRef = useRef<string | null>(null);
 
-  const handleEvent = useCallback((inspectorEvent: InspectorEvent) => {
-    const event = inspectorEvent.event as { type?: string; delta?: string };
+  const handleEvent = useCallback((transportEvent: TransportEvent) => {
+    const event = transportEvent.event as { type?: string; delta?: string };
 
     switch (event.type) {
       case 'TEXT_MESSAGE_START': {
@@ -73,43 +71,24 @@ export function useAgentChat({
       url: agentUrl,
       onEvent: handleEvent,
       onStateChange: (state) => {
-        if (state === 'connected') {
-          setIsConnected(true);
-        }
-        if (state === 'connecting') {
-          setIsConnecting(true);
-        }
-        if (state === 'disconnected') {
-          setIsConnected(false);
-          setIsConnecting(false);
-        }
-        if (state === 'error') {
-          setIsConnected(false);
-          setIsConnecting(false);
-        }
+        setIsConnected(state === 'connected');
       },
       onError: (err) => {
         setError(err.message);
-        setIsLoading(false);
       },
     });
 
     clientRef.current = client;
 
     const connectClient = async () => {
-      setIsConnecting(true);
       setError(null);
 
       try {
         await client.connect();
-        setIsConnected(true);
       } catch (err) {
-        setIsConnected(false);
         const errorMessage = 'Failed to connect to agent. Make sure it is running and reachable.';
         setError(errorMessage);
         console.error('Agent connection error:', err);
-      } finally {
-        setIsConnecting(false);
       }
     };
 
@@ -135,8 +114,12 @@ export function useAgentChat({
     setError(null);
 
     try {
-      // Prepare the conversation messages with proper structure
-      const conversationMessages = [
+      // Prepare the conversation messages
+      const conversationMessages: Array<{
+        id: string;
+        role: 'user' | 'assistant';
+        content: string;
+      }> = [
         ...messages.map(m => ({
           id: m.id,
           role: m.role,
@@ -144,17 +127,17 @@ export function useAgentChat({
         })),
         {
           id: userMessage.id,
-          role: 'user',
+          role: 'user' as const,
           content,
         }
       ];
 
-      // Call the agent with proper payload structure
+      // Build RunAgentInput payload
       const runInput: RunAgentInput = {
         threadId,
         runId: crypto.randomUUID(),
-        messages: conversationMessages as any,
-        state: {} as any,
+        messages: conversationMessages as any, // AG-UI core Message type is complex; cast for now
+        state: {},
         tools: [],
         context: [],
         forwardedProps: {},
@@ -166,10 +149,12 @@ export function useAgentChat({
       }
 
       await clientRef.current.sendMessage(runInput);
+      
+      // Note: isLoading will be set to false by TEXT_MESSAGE_END event
     } catch (err) {
       console.error('Error calling agent:', err);
       
-      const errorMessage = 'Sorry, I encountered an error. Please make sure the agent is running on localhost:8000.';
+      const errorMessage = `Failed to send message. Check that the agent is running at ${agentUrl}`;
       setError(errorMessage);
       
       // Add error message to chat
@@ -180,7 +165,6 @@ export function useAgentChat({
       };
       
       setMessages((prev) => [...prev, errorChatMessage]);
-    } finally {
       setIsLoading(false);
     }
   }, [messages, isLoading, threadId, agentUrl]);
@@ -195,10 +179,7 @@ export function useAgentChat({
     isLoading,
     error,
     isConnected,
-    isConnecting,
     sendMessage,
     clearMessages,
   };
 }
-
-

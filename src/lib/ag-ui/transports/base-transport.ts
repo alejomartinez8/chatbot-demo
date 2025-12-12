@@ -3,7 +3,7 @@
  * Abstract interface for AG-UI transport implementations.
  */
 import type { RunAgentInput } from '@ag-ui/core';
-import type { InspectorEvent } from '../types/ag-ui-events';
+import type { TransportEvent } from '../types/ag-ui-events';
 
 export type ConnectionStatus =
   | 'disconnected'
@@ -15,7 +15,7 @@ export type ConnectionStatus =
 export interface TransportConfig {
   url: string;
   headers?: Record<string, string>;
-  onEvent?: (event: InspectorEvent) => void;
+  onEvent?: (event: TransportEvent) => void;
   onStateChange?: (state: ConnectionStatus) => void;
   onError?: (error: Error) => void;
 }
@@ -79,7 +79,7 @@ export abstract class BaseTransport {
   /**
    * Emit event to listeners.
    */
-  protected emitEvent(event: InspectorEvent): void {
+  protected emitEvent(event: TransportEvent): void {
     try {
       this.config.onEvent?.(event);
     } catch (error) {
@@ -88,5 +88,3 @@ export abstract class BaseTransport {
     }
   }
 }
-
-

@@ -20,7 +20,7 @@ export function ChatSidebar() {
   const [input, setInput] = useState<string>('');
   
   // Use the custom hook to manage agent communication
-  const { messages, isLoading, isConnected, isConnecting, sendMessage } = useAgentChat({
+  const { messages, isLoading, isConnected, sendMessage } = useAgentChat({
     agentUrl: '/api/agent/',
     threadId: 'chat-thread',
   });
@@ -45,19 +45,15 @@ export function ChatSidebar() {
       <div className="p-5 border-b border-gray-200 flex justify-between items-center bg-gray-50">
         <div className="flex items-center gap-2">
           <h2 className="m-0 text-xl font-semibold text-gray-800">Sidebar Chatbot Demo</h2>
-          {isConnecting && (
-            <span className="text-xs text-gray-500">Connecting...</span>
-          )}
-          {!isConnecting && isConnected && (
+          {isConnected ? (
             <span className="flex items-center gap-1 text-xs text-green-600">
               <span className="w-2 h-2 bg-green-600 rounded-full"></span>
               Connected
             </span>
-          )}
-          {!isConnecting && !isConnected && (
-            <span className="flex items-center gap-1 text-xs text-red-600">
-              <span className="w-2 h-2 bg-red-600 rounded-full"></span>
-              Disconnected
+          ) : (
+            <span className="flex items-center gap-1 text-xs text-gray-500">
+              <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
+              Connecting...
             </span>
           )}
         </div>
@@ -68,17 +64,11 @@ export function ChatSidebar() {
           {messages.length === 0 ? (
             <ConversationEmptyState
               icon={<MessageSquare className="size-12" />}
-              title={
-                isConnecting
-                  ? 'Connecting to agent...'
-                  : !isConnected
-                  ? '⚠️ Agent not connected'
-                  : 'Welcome! Start a conversation.'
-              }
+              title={isConnected ? 'Welcome! Start a conversation.' : 'Connecting to agent...'}
               description={
-                !isConnecting && !isConnected
-                  ? 'Make sure the agent is running on localhost:8000'
-                  : 'Type a message below to begin chatting.'
+                isConnected
+                  ? 'Type a message below to begin chatting.'
+                  : 'Establishing connection to the agent...'
               }
             />
           ) : (

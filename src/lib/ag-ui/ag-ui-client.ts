@@ -54,5 +54,3 @@ export class AgUIClient {
     return this.transport.getReconnectionInfo();
   }
 }
-
-

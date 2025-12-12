@@ -1,12 +1,15 @@
 /**
  * AG-UI Event Types
- * Minimal wrapper around @ag-ui/core schemas for inspector-like events.
+ * Minimal wrapper around @ag-ui/core schemas for transport events.
  */
 import { EventSchemas, EventType } from '@ag-ui/core';
 
 export type AgUIEvent = ReturnType<typeof EventSchemas['parse']>;
 
-export interface InspectorEvent {
+/**
+ * Wrapper for AG-UI events with transport metadata.
+ */
+export interface TransportEvent {
   id: string; // Generated UUID for tracking
   event: AgUIEvent; // The actual ag-ui event
   timestamp: number; // When we received it (ms)
