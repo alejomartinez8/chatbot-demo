@@ -2,46 +2,13 @@
 # yarn lockfile v1
 
 
-"@ag-ui/client@^0.0.42":
-  version "0.0.42"
-  resolved "https://registry.yarnpkg.com/@ag-ui/client/-/client-0.0.42.tgz#25cd0b58b5aacc833df42ab5639a062868cbc17c"
-  integrity sha512-zAbP+sZJImR5bUpR2ni7RtuuNZMuesaxviynyIgzKlr1k2VCM49mFpbDUKU4TH4Cneu+Xe7OEnO8qCOCIzBAww==
-  dependencies:
-    "@ag-ui/core" "0.0.42"
-    "@ag-ui/encoder" "0.0.42"
-    "@ag-ui/proto" "0.0.42"
-    "@types/uuid" "^10.0.0"
-    compare-versions "^6.1.1"
-    fast-json-patch "^3.1.1"
-    rxjs "7.8.1"
-    untruncate-json "^0.0.1"
-    uuid "^11.1.0"
-    zod "^3.22.4"
-
-"@ag-ui/core@0.0.42":
+"@ag-ui/core@^0.0.42":
   version "0.0.42"
   resolved "https://registry.yarnpkg.com/@ag-ui/core/-/core-0.0.42.tgz#f750835ff021c5796039d95059495e85b6acf633"
   integrity sha512-C2hMg4Gs5oiUDgK9cA2RsTwSSmFZdIsqPklDrFw/Ue+quH6EU3vKp5YoOq7nuaQYO4pO8Em+Z+l5/M5PpcvP1g==
   dependencies:
     rxjs "7.8.1"
     zod "^3.22.4"
-
-"@ag-ui/encoder@0.0.42":
-  version "0.0.42"
-  resolved "https://registry.yarnpkg.com/@ag-ui/encoder/-/encoder-0.0.42.tgz#098a1431952f2ad64f56fb7399e08681dd7b4212"
-  integrity sha512-97B5MMCSs82t/y41uk2NrLBYFhbvn4kYsKQHMCfy8tjSWubyxh3zP7N9yHo8zJeSPe3WvzTvclyXNiGxSOsorg==
-  dependencies:
-    "@ag-ui/core" "0.0.42"
-    "@ag-ui/proto" "0.0.42"
-
-"@ag-ui/proto@0.0.42":
-  version "0.0.42"
-  resolved "https://registry.yarnpkg.com/@ag-ui/proto/-/proto-0.0.42.tgz#649da542068ebb582ef15a71ba88a22e855dee33"
-  integrity sha512-NDUwSgMnGEqxZGkWIJ1ge5t3Q7Kiddj360x2JAWaIfv9w+7tDJ0pmgyzf3/SXp605aY2wZiDLBtJ6jKZeg1lFg==
-  dependencies:
-    "@ag-ui/core" "0.0.42"
-    "@bufbuild/protobuf" "^2.2.5"
-    "@protobuf-ts/protoc" "^2.11.1"
 
 "@antfu/install-pkg@^1.1.0":
   version "1.1.0"
@@ -319,11 +286,6 @@
   version "7.1.1"
   resolved "https://registry.yarnpkg.com/@braintree/sanitize-url/-/sanitize-url-7.1.1.tgz#15e19737d946559289b915e5dad3b4c28407735e"
   integrity sha512-i1L7noDNxtFyL5DmZafWy1wRVhGehQmzZaz1HiN5e7iylJMSZR7ekOV7NsIqa5qBldlLrsKv4HbgFUVlQrz8Mw==
-
-"@bufbuild/protobuf@^2.2.5":
-  version "2.10.1"
-  resolved "https://registry.yarnpkg.com/@bufbuild/protobuf/-/protobuf-2.10.1.tgz#012f6d7d110f8c45198c7e6a96cb217c45d0c696"
-  integrity sha512-ckS3+vyJb5qGpEYv/s1OebUHDi/xSNtfgw1wqKZo7MR9F2z+qXr0q5XagafAG/9O0QPVIUfST0smluYSTpYFkg==
 
 "@chevrotain/cst-dts-gen@11.0.3":
   version "11.0.3"
@@ -756,11 +718,6 @@
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/@open-draft/until/-/until-2.1.0.tgz#0acf32f470af2ceaf47f095cdecd40d68666efda"
   integrity sha512-U69T3ItWHvLwGg5eJ0n3I62nWuE6ilHlmz7zM0npLBRvPRd7e6NYmg54vvRtP5mZG7kZqZCFVdsTWo7BPtBujg==
-
-"@protobuf-ts/protoc@^2.11.1":
-  version "2.11.1"
-  resolved "https://registry.yarnpkg.com/@protobuf-ts/protoc/-/protoc-2.11.1.tgz#5ae86a777cacdc58ddc7e38ee107a74342a86e30"
-  integrity sha512-mUZJaV0daGO6HUX90o/atzQ6A7bbN2RSuHtdwo8SSF2Qoe3zHwa4IHyCN1evftTeHfLmdz+45qo47sL+5P8nyg==
 
 "@radix-ui/primitive@1.1.3":
   version "1.1.3"
@@ -1577,11 +1534,6 @@
   resolved "https://registry.yarnpkg.com/@types/unist/-/unist-2.0.11.tgz#11af57b127e32487774841f7a4e54eab166d03c4"
   integrity sha512-CmBKiL6NNo/OqgmMn95Fk9Whlp2mtvIv+KNpQKN2F4SjvrEesubTRWGYSg+BnWZOnlCaSTU1sMpsBOzgbYhnsA==
 
-"@types/uuid@^10.0.0":
-  version "10.0.0"
-  resolved "https://registry.yarnpkg.com/@types/uuid/-/uuid-10.0.0.tgz#e9c07fe50da0f53dc24970cca94d619ff03f6f6d"
-  integrity sha512-7gqG38EyHgyP1S+7+xomFtL+ZNHcKv6DwNaCZmJmo1vgMugyF3TCnXVg4t1uk89mLNwnLtnY3TpOpCOyp1/xHQ==
-
 "@ungap/structured-clone@^1.0.0":
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/@ungap/structured-clone/-/structured-clone-1.3.0.tgz#d06bbb384ebcf6c505fde1c3d0ed4ddffe0aaff8"
@@ -1870,11 +1822,6 @@ commander@^8.3.0:
   version "8.3.0"
   resolved "https://registry.yarnpkg.com/commander/-/commander-8.3.0.tgz#4837ea1b2da67b9c616a67afbb0fafee567bca66"
   integrity sha512-OkTL9umf+He2DZkUq8f8J9of7yL6RJKI24dVITBmNfZBmri9zYZQrKkuXiKhyfPSu8tUhnVBB1iKXevvnlR4Ww==
-
-compare-versions@^6.1.1:
-  version "6.1.1"
-  resolved "https://registry.yarnpkg.com/compare-versions/-/compare-versions-6.1.1.tgz#7af3cc1099ba37d244b3145a9af5201b629148a9"
-  integrity sha512-4hm4VPpIecmlg59CHXnRDnqGplJFrbLG4aFEl5vl6cK1u76ws3LLvX7ikFnTDl5vo39sjWD6AaDPYodJp/NNHg==
 
 confbox@^0.1.8:
   version "0.1.8"
@@ -2587,11 +2534,6 @@ fast-glob@^3.3.3:
     glob-parent "^5.1.2"
     merge2 "^1.3.0"
     micromatch "^4.0.8"
-
-fast-json-patch@^3.1.1:
-  version "3.1.1"
-  resolved "https://registry.yarnpkg.com/fast-json-patch/-/fast-json-patch-3.1.1.tgz#85064ea1b1ebf97a3f7ad01e23f9337e72c66947"
-  integrity sha512-vf6IHUX2SBcA+5/+4883dsIjpBTqmfBjmYiWK1savxQmFk4JfBMLa7ynTYOs1Rolp/T1betJxHiGD3g1Mn8lUQ==
 
 fast-uri@^3.0.1:
   version "3.1.0"
@@ -5131,11 +5073,6 @@ until-async@^3.0.2:
   version "3.0.2"
   resolved "https://registry.yarnpkg.com/until-async/-/until-async-3.0.2.tgz#447f1531fdd7bb2b4c7a98869bdb1a4c2a23865f"
   integrity sha512-IiSk4HlzAMqTUseHHe3VhIGyuFmN90zMTpD3Z3y8jeQbzLIq500MVM7Jq2vUAnTKAFPJrqwkzr6PoTcPhGcOiw==
-
-untruncate-json@^0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/untruncate-json/-/untruncate-json-0.0.1.tgz#a225e87d5d669c9ec6e04fc8de349e65b6cc2e9e"
-  integrity sha512-4W9enDK4X1y1s2S/Rz7ysw6kDuMS3VmRjMFg7GZrNO+98OSe+x5Lh7PKYoVjy3lW/1wmhs6HW0lusnQRHgMarA==
 
 update-browserslist-db@^1.2.0:
   version "1.2.2"

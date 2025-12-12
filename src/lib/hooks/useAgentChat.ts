@@ -1,5 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { HttpAgent } from '@ag-ui/client';
+import type { RunAgentInput } from '@ag-ui/core';
+import { AgUIClient } from '@/lib/ag-ui/ag-ui-client';
+import type { TransportEvent } from '@/lib/ag-ui/types/ag-ui-events';
 import { Message } from '@/lib/types';
 
 interface UseAgentChatOptions {
@@ -12,71 +14,94 @@ interface UseAgentChatReturn {
   isLoading: boolean;
   error: string | null;
   isConnected: boolean;
-  isConnecting: boolean;
   sendMessage: (content: string) => Promise<void>;
   clearMessages: () => void;
 }
 
-export function useAgentChat({ 
-  agentUrl, 
-  threadId = 'default-thread' 
+export function useAgentChat({
+  agentUrl,
+  threadId = 'default-thread',
 }: UseAgentChatOptions): UseAgentChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(true);
-  const agentRef = useRef<HttpAgent | null>(null);
+  const clientRef = useRef<AgUIClient | null>(null);
+  const assistantBufferRef = useRef('');
+  const assistantMessageIdRef = useRef<string | null>(null);
 
-  // Initialize the HttpAgent and check connection
+  const handleEvent = useCallback((transportEvent: TransportEvent) => {
+    const event = transportEvent.event as { type?: string; delta?: string };
+
+    switch (event.type) {
+      case 'TEXT_MESSAGE_START': {
+        assistantBufferRef.current = '';
+        assistantMessageIdRef.current = crypto.randomUUID();
+        break;
+      }
+      case 'TEXT_MESSAGE_CONTENT': {
+        if (typeof event.delta === 'string') {
+          assistantBufferRef.current += event.delta;
+        }
+        break;
+      }
+      case 'TEXT_MESSAGE_END': {
+        const content = assistantBufferRef.current.trim();
+        if (content) {
+          const assistantMessage: Message = {
+            id: assistantMessageIdRef.current || crypto.randomUUID(),
+            role: 'assistant',
+            content,
+          };
+          setMessages((prev) => [...prev, assistantMessage]);
+        }
+        assistantBufferRef.current = '';
+        assistantMessageIdRef.current = null;
+        setIsLoading(false);
+        break;
+      }
+      default:
+        break;
+    }
+  }, []);
+
+  // Initialize the AgUI client and connect
   useEffect(() => {
-    agentRef.current = new HttpAgent({
+    const client = new AgUIClient({
       url: agentUrl,
+      onEvent: handleEvent,
+      onStateChange: (state) => {
+        setIsConnected(state === 'connected');
+      },
+      onError: (err) => {
+        setError(err.message);
+      },
     });
 
-    // Perform health check
-    const checkConnection = async () => {
-      setIsConnecting(true);
+    clientRef.current = client;
+
+    const connectClient = async () => {
       setError(null);
-      
+
       try {
-        console.log('Checking agent connection at:', agentUrl);
-        // Use OPTIONS request for health check (less intrusive than POST)
-        const response = await fetch(agentUrl, {
-          method: 'OPTIONS',
-          headers: {
-            'Accept': 'application/json',
-          },
-        });
-        
-        // Accept 200-299 or 405 (Method Not Allowed) as indication server is up
-        if (response.ok || response.status === 405) {
-          setIsConnected(true);
-          console.log('✅ Agent connected successfully');
-        } else {
-          setIsConnected(false);
-          setError(`Agent returned status ${response.status}`);
-          console.error('❌ Agent connection failed:', response.status);
-        }
+        await client.connect();
       } catch (err) {
-        setIsConnected(false);
-        const errorMessage = 'Failed to connect to agent. Make sure it\'s running on localhost:8000';
+        const errorMessage = 'Failed to connect to agent. Make sure it is running and reachable.';
         setError(errorMessage);
-        console.error('❌ Agent connection error:', err);
-      } finally {
-        setIsConnecting(false);
+        console.error('Agent connection error:', err);
       }
     };
 
-    checkConnection();
+    connectClient();
 
     return () => {
-      agentRef.current = null;
+      client.disconnect();
+      clientRef.current = null;
     };
-  }, [agentUrl]);
+  }, [agentUrl, handleEvent]);
 
   const sendMessage = useCallback(async (content: string) => {
-    if (!content.trim() || isLoading || !agentRef.current) return;
+    if (!content.trim() || isLoading || !clientRef.current) return;
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -89,8 +114,12 @@ export function useAgentChat({
     setError(null);
 
     try {
-      // Prepare the conversation messages with proper structure
-      const conversationMessages = [
+      // Prepare the conversation messages
+      const conversationMessages: Array<{
+        id: string;
+        role: 'user' | 'assistant';
+        content: string;
+      }> = [
         ...messages.map(m => ({
           id: m.id,
           role: m.role,
@@ -98,106 +127,34 @@ export function useAgentChat({
         })),
         {
           id: userMessage.id,
-          role: 'user',
+          role: 'user' as const,
           content,
         }
       ];
 
-      // Call the agent with proper payload structure
-      const response = agentRef.current.run({
+      // Build RunAgentInput payload
+      const runInput: RunAgentInput = {
         threadId,
         runId: crypto.randomUUID(),
-        messages: conversationMessages as any,
-        state: {} as any,
+        messages: conversationMessages as any, // AG-UI core Message type is complex; cast for now
+        state: {},
         tools: [],
         context: [],
         forwardedProps: {},
-      });
-
-      console.log('Response received:', response);
-
-      // Handle Observable response (streaming)
-      let assistantContent = '';
-      
-      // Check if response is an Observable (has subscribe method)
-      if (response && typeof response === 'object' && 'subscribe' in response) {
-        console.log('Processing Observable response...');
-        
-        // Create a promise to wait for all events
-        await new Promise<void>((resolve, reject) => {
-          const subscription = (response as any).subscribe({
-            next: (event: any) => {
-              console.log('Event:', event);
-              
-              // Accumulate text content from TEXT_MESSAGE_CONTENT events
-              if (event.type === 'TEXT_MESSAGE_CONTENT' && event.delta) {
-                assistantContent += event.delta;
-              }
-            },
-            error: (err: any) => {
-              console.error('Observable error:', err);
-              reject(err);
-            },
-            complete: () => {
-              console.log('Observable completed');
-              subscription.unsubscribe();
-              resolve();
-            }
-          });
-        });
-      } 
-      // Handle non-streaming response (fallback)
-      else if (response && typeof response === 'object') {
-        const responseObj = response as any;
-        
-        if ('messages' in responseObj && Array.isArray(responseObj.messages)) {
-          const lastMessage = responseObj.messages
-            .filter((m: any) => m.role === 'assistant' || m.role === 'model')
-            .pop();
-          
-          if (lastMessage) {
-            if (typeof lastMessage.content === 'string') {
-              assistantContent = lastMessage.content;
-            } else if (lastMessage.content?.text) {
-              assistantContent = lastMessage.content.text;
-            } else if (Array.isArray(lastMessage.content)) {
-              const textParts = lastMessage.content
-                .filter((part: any) => part.text)
-                .map((part: any) => part.text);
-              if (textParts.length > 0) {
-                assistantContent = textParts.join('\n');
-              }
-            }
-          }
-        } else if ('content' in responseObj && responseObj.content) {
-          if (typeof responseObj.content === 'string') {
-            assistantContent = responseObj.content;
-          } else if (typeof responseObj.content === 'object' && responseObj.content !== null) {
-            const contentObj = responseObj.content as any;
-            assistantContent = contentObj.text || '';
-          }
-        }
-      }
-
-      // Use accumulated content or default message
-      if (!assistantContent) {
-        assistantContent = 'I processed your request.';
-      }
-
-      console.log('Final assistant content:', assistantContent);
-
-      // Add assistant message
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: assistantContent,
       };
 
-      setMessages((prev) => [...prev, assistantMessage]);
+      // Ensure the client is connected before sending
+      if (clientRef.current.getStatus() !== 'connected') {
+        await clientRef.current.connect();
+      }
+
+      await clientRef.current.sendMessage(runInput);
+      
+      // Note: isLoading will be set to false by TEXT_MESSAGE_END event
     } catch (err) {
       console.error('Error calling agent:', err);
       
-      const errorMessage = 'Sorry, I encountered an error. Please make sure the agent is running on localhost:8000.';
+      const errorMessage = `Failed to send message. Check that the agent is running at ${agentUrl}`;
       setError(errorMessage);
       
       // Add error message to chat
@@ -208,10 +165,9 @@ export function useAgentChat({
       };
       
       setMessages((prev) => [...prev, errorChatMessage]);
-    } finally {
       setIsLoading(false);
     }
-  }, [messages, isLoading, threadId]);
+  }, [messages, isLoading, threadId, agentUrl]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
@@ -223,10 +179,7 @@ export function useAgentChat({
     isLoading,
     error,
     isConnected,
-    isConnecting,
     sendMessage,
     clearMessages,
   };
 }
-
-
