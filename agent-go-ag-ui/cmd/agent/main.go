@@ -10,11 +10,10 @@ import (
 	"time"
 
 	"agent-go-ag-ui/internal/agent"
+	"agent-go-ag-ui/internal/agui"
 	"agent-go-ag-ui/internal/config"
-	"agent-go-ag-ui/internal/handler"
 	"agent-go-ag-ui/internal/server"
 	"agent-go-ag-ui/internal/session"
-	"agent-go-ag-ui/internal/stream"
 )
 
 func main() {
@@ -33,8 +32,9 @@ func main() {
 
 	// Initialize components
 	sessionMgr := session.NewManager()
-	streamer := stream.NewStreamer(adkAgent, sessionMgr, cfg.AppName)
-	h := handler.NewHandler(adkAgent, streamer, cfg.AppName)
+	stateMgr := agui.NewStateManager()
+	streamer := agui.NewStreamer(adkAgent, sessionMgr, cfg.AppName)
+	h := agui.NewHandler(adkAgent, streamer, stateMgr, cfg.AppName)
 
 	// Create and start server
 	srv := server.New(cfg, h)
@@ -59,4 +59,3 @@ func main() {
 		log.Printf("Error shutting down server: %v", err)
 	}
 }
-

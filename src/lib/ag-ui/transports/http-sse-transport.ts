@@ -124,11 +124,6 @@ export class HttpSseTransport extends BaseTransport {
       ...this.config.headers,
     };
 
-    // Add x-thread-id header if threadId is provided
-    if (runAgentInput.threadId) {
-      headers['x-thread-id'] = runAgentInput.threadId;
-    }
-
     const response = await fetch(this.config.url, {
       method: 'POST',
       headers,

@@ -1,8 +1,7 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
-import type { RunAgentInput } from '@ag-ui/core';
+import type { RunAgentInput, Message, UserMessage, AssistantMessage } from '@ag-ui/core';
 import { AgUIClient } from '@/lib/ag-ui/ag-ui-client';
 import type { TransportEvent } from '@/lib/ag-ui/types/ag-ui-events';
-import { Message } from '@/lib/types';
 
 interface UseAgentChatOptions {
   agentUrl: string;
@@ -31,9 +30,19 @@ export function useAgentChat({
   const assistantMessageIdRef = useRef<string | null>(null);
 
   const handleEvent = useCallback((transportEvent: TransportEvent) => {
-    const event = transportEvent.event as { type?: string; delta?: string };
+    const event = transportEvent.event as { type?: string; delta?: string; snapshot?: any };
 
     switch (event.type) {
+      case 'STATE_SNAPSHOT': {
+        // According to AG-UI protocol, STATE_SNAPSHOT provides the complete state
+        // This is typically sent on initial connection to synchronize state
+        // For this simple chat implementation, we just acknowledge the connection
+        if (event.snapshot !== undefined) {
+          // State snapshot received - connection is established
+          setIsConnected(true);
+        }
+        break;
+      }
       case 'TEXT_MESSAGE_START': {
         assistantBufferRef.current = '';
         assistantMessageIdRef.current = crypto.randomUUID();
@@ -48,7 +57,7 @@ export function useAgentChat({
       case 'TEXT_MESSAGE_END': {
         const content = assistantBufferRef.current.trim();
         if (content) {
-          const assistantMessage: Message = {
+          const assistantMessage: AssistantMessage = {
             id: assistantMessageIdRef.current || crypto.randomUUID(),
             role: 'assistant',
             content,
@@ -103,7 +112,7 @@ export function useAgentChat({
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isLoading || !clientRef.current) return;
 
-    const userMessage: Message = {
+    const userMessage: UserMessage = {
       id: crypto.randomUUID(),
       role: 'user',
       content,
@@ -114,29 +123,18 @@ export function useAgentChat({
     setError(null);
 
     try {
-      // Prepare the conversation messages
-      const conversationMessages: Array<{
-        id: string;
-        role: 'user' | 'assistant';
-        content: string;
-      }> = [
-        ...messages.map(m => ({
-          id: m.id,
-          role: m.role,
-          content: m.content,
-        })),
-        {
-          id: userMessage.id,
-          role: 'user' as const,
-          content,
-        }
+      // Prepare the conversation messages including the new user message
+      // All messages are already in AG-UI Message format
+      const allMessages: Message[] = [
+        ...messages,
+        userMessage,
       ];
 
-      // Build RunAgentInput payload
+      // Build RunAgentInput payload with AG-UI Message types
       const runInput: RunAgentInput = {
         threadId,
         runId: crypto.randomUUID(),
-        messages: conversationMessages as any, // AG-UI core Message type is complex; cast for now
+        messages: allMessages,
         state: {},
         tools: [],
         context: [],
@@ -158,7 +156,7 @@ export function useAgentChat({
       setError(errorMessage);
       
       // Add error message to chat
-      const errorChatMessage: Message = {
+      const errorChatMessage: AssistantMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
         content: errorMessage,

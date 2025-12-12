@@ -15,6 +15,8 @@ import {
   MessageActions,
   MessageAction,
 } from '@/components/ai-elements/message';
+import { extractMessageContent, extractMessageRole, isUserMessage } from '@/lib/ag-ui/message-helpers';
+import type { Message as AgUIMessage } from '@ag-ui/core';
 
 export function ChatSidebar() {
   const [input, setInput] = useState<string>('');
@@ -73,36 +75,45 @@ export function ChatSidebar() {
             />
           ) : (
             <>
-              {messages.map((message, messageIndex) => (
-                <Fragment key={message.id}>
-                  <Message from={message.role}>
-                    <MessageContent>
-                      <MessageResponse>{message.content}</MessageResponse>
-                    </MessageContent>
-                  </Message>
-                  {message.role === 'assistant' && messageIndex === messages.length - 1 && (
-                    <MessageActions>
-                      <MessageAction
-                        onClick={() => navigator.clipboard.writeText(message.content)}
-                        label="Copy"
-                      >
-                        <CopyIcon className="size-3" />
-                      </MessageAction>
-                      <MessageAction
-                        onClick={() => {
-                          const lastUserMessage = messages[messages.length - 2];
-                          if (lastUserMessage?.role === 'user') {
-                            sendMessage(lastUserMessage.content);
-                          }
-                        }}
-                        label="Retry"
-                      >
-                        <RefreshCcwIcon className="size-3" />
-                      </MessageAction>
-                    </MessageActions>
-                  )}
-                </Fragment>
-              ))}
+              {messages.map((message: AgUIMessage, messageIndex) => {
+                const role = extractMessageRole(message);
+                const content = extractMessageContent(message);
+                
+                return (
+                  <Fragment key={message.id}>
+                    <Message from={role}>
+                      <MessageContent>
+                        <MessageResponse>{content}</MessageResponse>
+                      </MessageContent>
+                    </Message>
+                    {role === 'assistant' && messageIndex === messages.length - 1 && (
+                      <MessageActions>
+                        <MessageAction
+                          onClick={() => navigator.clipboard.writeText(content)}
+                          label="Copy"
+                        >
+                          <CopyIcon className="size-3" />
+                        </MessageAction>
+                        <MessageAction
+                          onClick={() => {
+                            // Find the last user message
+                            for (let i = messages.length - 2; i >= 0; i--) {
+                              if (isUserMessage(messages[i])) {
+                                const userContent = extractMessageContent(messages[i]);
+                                sendMessage(userContent);
+                                break;
+                              }
+                            }
+                          }}
+                          label="Retry"
+                        >
+                          <RefreshCcwIcon className="size-3" />
+                        </MessageAction>
+                      </MessageActions>
+                    )}
+                  </Fragment>
+                );
+              })}
 
               {isLoading && (
                 <div className="flex items-start">
