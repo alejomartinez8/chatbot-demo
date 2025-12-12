@@ -19,6 +19,17 @@ if [ -z "$GOOGLE_API_KEY" ]; then
     echo ""
 fi
 
-# Run the agent
-go run .
+# Check if reflex is installed, if not use go run
+if command -v reflex &> /dev/null; then
+    echo "🔄 Starting agent with auto-reload (reflex)..."
+    echo "   The agent will automatically restart when you make changes to .go files"
+    echo ""
+    reflex -r '\.go$' -s -- go run .
+else
+    echo "💡 Tip: Install 'reflex' for auto-reload on file changes:"
+    echo "   go install github.com/cespare/reflex@latest"
+    echo ""
+    echo "Starting agent (no auto-reload)..."
+    go run .
+fi
 
