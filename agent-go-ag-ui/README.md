@@ -94,11 +94,14 @@ agent-go-ag-ui/
 │       └── main.go              # Application entry point
 ├── internal/
 │   ├── agent/                   # Agent creation and configuration
+│   ├── agui/                    # AG-UI protocol implementation
+│   │   ├── handler.go          # HTTP handler for AG-UI protocol
+│   │   ├── streamer.go         # Agent response streaming
+│   │   ├── state.go            # State management per thread
+│   │   └── types.go            # AG-UI protocol types (RunAgentInput, etc.)
 │   ├── config/                  # Configuration management
-│   ├── handler/                 # HTTP handler for AG-UI protocol
 │   ├── server/                  # HTTP server setup and lifecycle
-│   ├── session/                 # Session management
-│   └── stream/                  # Agent response streaming
+│   └── session/                 # Session management (ADK)
 ├── scripts/                     # Build and run scripts
 ├── go.mod                       # Go module definition
 ├── go.sum                       # Dependency checksums
@@ -116,14 +119,26 @@ The agent is created using `llmagent.New()` with:
 
 ### AG-UI Protocol
 
-The server implements the AG-UI protocol:
+The server implements the AG-UI protocol following the [official specification](https://docs.ag-ui.com):
 - **Endpoint**: `POST /` (root path)
 - **Protocol**: HTTP with Server-Sent Events (SSE)
 - **Input**: `RunAgentInput` JSON format
 - **Output**: SSE stream with AG-UI events:
+  - `STATE_SNAPSHOT` - Complete state sent on initial connection (when messages array is empty)
+  - `RUN_STARTED` - Indicates start of agent execution
   - `TEXT_MESSAGE_START` - Indicates start of response
   - `TEXT_MESSAGE_CONTENT` - Streaming text chunks (delta)
   - `TEXT_MESSAGE_END` - Indicates end of response
+  - `RUN_FINISHED` - Indicates completion of agent execution
+  - `RUN_ERROR` - Error event if execution fails
+  - `TOOL_CALL_START`, `TOOL_CALL_ARGS`, `TOOL_CALL_RESULT`, `TOOL_CALL_END` - Tool execution events
+
+### Type Safety
+
+The implementation uses official AG-UI SDK types:
+- `Message` type from `github.com/ag-ui-protocol/ag-ui/sdks/community/go/pkg/core/events`
+- All events follow the official AG-UI protocol specification
+- State management uses `STATE_SNAPSHOT` for initial synchronization according to [AG-UI State Management](https://docs.ag-ui.com/concepts/state)
 
 ### Agent Execution
 
@@ -179,6 +194,7 @@ go test ./...
 Key dependencies:
 - `google.golang.org/adk` - Agent Development Kit
 - `google.golang.org/genai` - Gemini API client
+- `github.com/ag-ui-protocol/ag-ui/sdks/community/go` - Official AG-UI Go SDK
 - Standard library packages for HTTP and JSON
 
 ## Troubleshooting
@@ -241,11 +257,19 @@ Main endpoint for AG-UI protocol communication.
 
 **Response:** Server-Sent Events stream
 
+**Initial connection (empty messages array):**
 ```
-data: {"type":"TEXT_MESSAGE_START"}
-data: {"type":"TEXT_MESSAGE_CONTENT","delta":"The current time"}
-data: {"type":"TEXT_MESSAGE_CONTENT","delta":" in Paris is..."}
-data: {"type":"TEXT_MESSAGE_END"}
+data: {"type":"STATE_SNAPSHOT","snapshot":{...}}
+```
+
+**Agent execution:**
+```
+data: {"type":"RUN_STARTED","threadId":"...","runId":"..."}
+data: {"type":"TEXT_MESSAGE_START","messageId":"...","role":"assistant"}
+data: {"type":"TEXT_MESSAGE_CONTENT","messageId":"...","delta":"The current time"}
+data: {"type":"TEXT_MESSAGE_CONTENT","messageId":"...","delta":" in Paris is..."}
+data: {"type":"TEXT_MESSAGE_END","messageId":"..."}
+data: {"type":"RUN_FINISHED","threadId":"...","runId":"..."}
 ```
 
 ## License
