@@ -7,17 +7,17 @@ import (
 	"time"
 
 	"agent-go-ag-ui/internal/config"
-	"agent-go-ag-ui/internal/handler"
+	"agent-go-ag-ui/internal/agui"
 )
 
 // Server represents the HTTP server
 type Server struct {
 	httpServer *http.Server
-	handler    *handler.Handler
+	handler    *agui.Handler
 }
 
 // New creates a new server instance
-func New(cfg *config.Config, h *handler.Handler) *Server {
+func New(cfg *config.Config, h *agui.Handler) *Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", h.HandleAgentRequest)
 

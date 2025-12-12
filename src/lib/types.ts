@@ -1,6 +1,2 @@
-// Chat message types
-export type Message = {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-};
+// Re-export AG-UI Message type as the primary message type
+export type { Message } from '@ag-ui/core';
