@@ -1,9 +1,7 @@
-package main
+package agent
 
 import (
 	"context"
-	"log"
-	"os"
 
 	"google.golang.org/adk/agent"
 	"google.golang.org/adk/agent/llmagent"
@@ -13,13 +11,8 @@ import (
 	"google.golang.org/genai"
 )
 
-// createAgent creates and returns a configured ADK agent for time queries
-func createAgent(ctx context.Context) (agent.Agent, error) {
-	apiKey := os.Getenv("GOOGLE_API_KEY")
-	if apiKey == "" {
-		log.Fatal("GOOGLE_API_KEY environment variable is required")
-	}
-
+// New creates and returns a configured ADK agent
+func New(ctx context.Context, apiKey string) (agent.Agent, error) {
 	model, err := gemini.NewModel(ctx, "gemini-3-pro-preview", &genai.ClientConfig{
 		APIKey: apiKey,
 	})
