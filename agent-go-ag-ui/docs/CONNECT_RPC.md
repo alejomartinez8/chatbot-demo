@@ -106,14 +106,14 @@ Connect RPC is a slim library for building browser- and gRPC-compatible HTTP API
 
 ```protobuf
 service AGUIService {
-  rpc RunAgent(RunAgentRequest) returns (stream AGUIEvent);
+  rpc RunAgent(RunAgentInput) returns (stream AGUIEvent);
 }
 ```
 
 This defines:
 - **Service**: `AGUIService` - The RPC service
 - **Method**: `RunAgent` - The RPC method name
-- **Request**: `RunAgentRequest` - Input message (Protobuf)
+- **Request**: `RunAgentInput` - Input message (Protobuf, matches official AG-UI protocol naming)
 - **Response**: `stream AGUIEvent` - Output as a stream of events
 
 ### Step 2: Generate Code
@@ -122,7 +122,7 @@ When you run `buf generate`, two code generators run:
 
 1. **`protoc-gen-go`** generates:
    - `gen/proto/agui/v1/agui.pb.go` - Go types for messages
-   - Types: `RunAgentRequest`, `AGUIEvent`, `Message`, etc.
+   - Types: `RunAgentInput`, `AGUIEvent`, `Message`, etc.
 
 2. **`protoc-gen-connect-go`** generates:
    - `gen/proto/agui/v1/aguiv1connect/agui.connect.go` - HTTP handlers
@@ -143,7 +143,7 @@ type ConnectHandler struct {
 
 func (h *ConnectHandler) RunAgent(
     ctx context.Context,
-    req *aguiv1.RunAgentRequest,  // Generated type from .proto
+    req *aguiv1.RunAgentInput,  // Generated type from .proto (matches AG-UI protocol)
     stream *connect.ServerStream[aguiv1.AGUIEvent],  // Stream for events
 ) error {
     // Implementation here
@@ -174,10 +174,10 @@ sequenceDiagram
     participant Streamer
     participant ADK as ADK Agent
     
-    Client->>Server: POST /connect<br/>RunAgentRequest (JSON/Protobuf)
+    Client->>Server: POST /connect<br/>RunAgentInput (JSON/Protobuf)
     Server->>Connect: Calls RunAgent()
     
-    Connect->>Converter: convertRunAgentRequest()<br/>Protobuf → RunAgentInput
+    Connect->>Converter: convertRunAgentInput()<br/>Protobuf → RunAgentInput
     Converter-->>Connect: RunAgentInput (internal)
     
     Connect->>Streamer: streamAgentResponse()<br/>Execute agent
@@ -196,9 +196,9 @@ sequenceDiagram
 
 ### Detailed Flow Explanation
 
-1. **Client Request**: Client sends `RunAgentRequest` to `/connect` endpoint
+1. **Client Request**: Client sends `RunAgentInput` to `/connect` endpoint
 2. **Server Routing**: HTTP server routes to Connect handler
-3. **Request Conversion**: Protobuf request converted to internal `RunAgentInput`
+3. **Request Conversion**: Protobuf `RunAgentInput` converted to internal `RunAgentInput` (same structure, different representation)
 4. **Agent Execution**: Streamer executes the ADK agent
 5. **Event Generation**: Agent generates events (text chunks, tool calls, etc.)
 6. **Event Conversion**: Internal events converted to Protobuf `AGUIEvent`
@@ -212,7 +212,8 @@ sequenceDiagram
 
 ```go
 // Generated from proto/agui/v1/agui.proto
-type RunAgentRequest struct {
+// Note: Uses RunAgentInput to match official AG-UI protocol naming
+type RunAgentInput struct {
     ThreadId       string
     RunId          string
     State          *structpb.Struct
@@ -235,7 +236,7 @@ type AGUIEvent struct {
 type AGUIServiceHandler interface {
     RunAgent(
         context.Context,
-        *RunAgentRequest,
+        *RunAgentInput,  // Matches official AG-UI protocol naming
         *connect.ServerStream[AGUIEvent],
     ) error
 }
@@ -251,8 +252,8 @@ func NewAGUIServiceHandler(
 
 **Responsibilities:**
 
-1. **Receive Request**: Accept `RunAgentRequest` (Protobuf)
-2. **Convert Request**: Transform Protobuf → Internal `RunAgentInput`
+1. **Receive Request**: Accept `RunAgentInput` (Protobuf)
+2. **Convert Request**: Transform Protobuf `RunAgentInput` → Internal `RunAgentInput`
 3. **Execute Agent**: Reuse existing `Streamer` logic
 4. **Convert Events**: Transform AG-UI events → Protobuf `AGUIEvent`
 5. **Stream Response**: Send events via `stream.Send()`
@@ -263,8 +264,8 @@ func NewAGUIServiceHandler(
 // Main RPC method
 func (h *ConnectHandler) RunAgent(...) error
 
-// Convert Protobuf request to internal format
-func (h *ConnectHandler) convertRunAgentRequest(...) (*RunAgentInput, error)
+// Convert Protobuf RunAgentInput to internal format
+func (h *ConnectHandler) convertRunAgentInput(...) (*RunAgentInput, error)
 
 // Convert AG-UI event to Protobuf
 func (h *ConnectHandler) convertAGUIEvent(...) (*aguiv1.AGUIEvent, error)
@@ -279,7 +280,7 @@ The handler includes conversion functions to bridge between Protobuf types and i
 
 ```go
 // Protobuf → Internal
-convertRunAgentRequest(req *aguiv1.RunAgentRequest) → *RunAgentInput
+convertRunAgentInput(req *aguiv1.RunAgentInput) → *RunAgentInput
 
 // Internal → Protobuf
 convertAGUIEvent(event events.Event) → *aguiv1.AGUIEvent
@@ -329,8 +330,9 @@ message Message {
   google.protobuf.Value tool_calls = 5;
 }
 
-// RunAgentRequest represents the input for running an agent
-message RunAgentRequest {
+// RunAgentInput represents the input for running an agent
+// This matches the official AG-UI protocol naming convention
+message RunAgentInput {
   string thread_id = 1;
   string run_id = 2;
   google.protobuf.Struct state = 3;
@@ -348,7 +350,7 @@ message AGUIEvent {
 
 // Service definition
 service AGUIService {
-  rpc RunAgent(RunAgentRequest) returns (stream AGUIEvent);
+  rpc RunAgent(RunAgentInput) returns (stream AGUIEvent);
 }
 ```
 
@@ -428,11 +430,11 @@ gen/
 ```go
 func (h *ConnectHandler) RunAgent(
     ctx context.Context,
-    req *aguiv1.RunAgentRequest,
+    req *aguiv1.RunAgentInput,
     stream *connect.ServerStream[aguiv1.AGUIEvent],
 ) error {
     // 1. Convert Protobuf → Internal
-    runInput, err := h.convertRunAgentRequest(req)
+    runInput, err := h.convertRunAgentInput(req)
     
     // 2. Validate
     if err := handler.ValidateMessages(runInput.Messages); err != nil {

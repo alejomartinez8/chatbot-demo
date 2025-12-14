@@ -40,11 +40,11 @@ func NewConnectHandler(agent agent.Agent, streamer *Streamer, stateMgr *StateMan
 // RunAgent implements the AGUIService.RunAgent RPC method
 func (h *ConnectHandler) RunAgent(
 	ctx context.Context,
-	req *aguiv1.RunAgentRequest,
+	req *aguiv1.RunAgentInput,
 	stream *connect.ServerStream[aguiv1.AGUIEvent],
 ) error {
-	// Convert protobuf request to internal RunAgentInput
-	runInput, err := h.convertRunAgentRequest(req)
+	// Convert protobuf RunAgentInput to internal RunAgentInput
+	runInput, err := h.convertRunAgentInput(req)
 	if err != nil {
 		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to convert request: %w", err))
 	}
@@ -193,8 +193,8 @@ func (h *ConnectHandler) RunAgent(
 	}
 }
 
-// convertRunAgentRequest converts a protobuf RunAgentRequest to internal RunAgentInput
-func (h *ConnectHandler) convertRunAgentRequest(req *aguiv1.RunAgentRequest) (*RunAgentInput, error) {
+// convertRunAgentInput converts a protobuf RunAgentInput to internal RunAgentInput
+func (h *ConnectHandler) convertRunAgentInput(req *aguiv1.RunAgentInput) (*RunAgentInput, error) {
 	// Convert state
 	state := make(map[string]interface{})
 	if req.State != nil {
@@ -228,13 +228,22 @@ func (h *ConnectHandler) convertRunAgentRequest(req *aguiv1.RunAgentRequest) (*R
 	// Convert tools
 	tools := make([]interface{}, 0, len(req.Tools))
 	for _, tool := range req.Tools {
-		tools = append(tools, tool.AsInterface())
+		toolMap := make(map[string]interface{})
+		toolMap["name"] = tool.Name
+		toolMap["description"] = tool.Description
+		if tool.Parameters != nil {
+			toolMap["parameters"] = tool.Parameters.AsMap()
+		}
+		tools = append(tools, toolMap)
 	}
 
 	// Convert context
 	context := make([]interface{}, 0, len(req.Context))
 	for _, ctxItem := range req.Context {
-		context = append(context, ctxItem.AsInterface())
+		ctxMap := make(map[string]interface{})
+		ctxMap["description"] = ctxItem.Description
+		ctxMap["value"] = ctxItem.Value
+		context = append(context, ctxMap)
 	}
 
 	// Convert forwarded props

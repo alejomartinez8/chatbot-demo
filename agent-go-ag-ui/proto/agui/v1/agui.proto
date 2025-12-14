@@ -15,15 +15,29 @@ message Message {
   google.protobuf.Value tool_calls = 5;
 }
 
-// RunAgentRequest represents the input for running an agent
-message RunAgentRequest {
+// Tool defines a tool that can be called by an agent
+message Tool {
+  string name = 1;
+  string description = 2;
+  google.protobuf.Struct parameters = 3;
+}
+
+// Context represents a piece of contextual information provided to an agent
+message Context {
+  string description = 1;
+  string value = 2;
+}
+
+// RunAgentInput represents the input for running an agent
+message RunAgentInput {
   string thread_id = 1;
   string run_id = 2;
-  google.protobuf.Struct state = 3;
-  repeated Message messages = 4;
-  repeated google.protobuf.Value tools = 5;
-  repeated google.protobuf.Value context = 6;
-  google.protobuf.Struct forwarded_props = 7;
+  string parent_run_id = 3;
+  google.protobuf.Struct state = 4;
+  repeated Message messages = 5;
+  repeated Tool tools = 6;
+  repeated Context context = 7;
+  google.protobuf.Struct forwarded_props = 8;
 }
 
 // AGUIEvent represents any AG-UI protocol event
@@ -39,6 +53,6 @@ message AGUIEvent {
 // AGUIService provides the Connect RPC interface for AG-UI protocol
 service AGUIService {
   // RunAgent executes an agent and streams AG-UI events
-  rpc RunAgent(RunAgentRequest) returns (stream AGUIEvent);
+  rpc RunAgent(RunAgentInput) returns (stream AGUIEvent);
 }
 
