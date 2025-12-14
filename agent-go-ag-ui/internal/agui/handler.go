@@ -75,7 +75,7 @@ func (h *Handler) HandleAgentRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate messages
-	if err := h.validateMessages(input.Messages); err != nil {
+	if err := h.ValidateMessages(input.Messages); err != nil {
 		errorEvent := events.NewRunErrorEvent("Invalid messages: "+err.Error(), events.WithRunID(runID))
 		ctx := r.Context()
 		bufWriter := bufio.NewWriter(w)
@@ -170,8 +170,8 @@ func (h *Handler) HandleAgentRequest(w http.ResponseWriter, r *http.Request) {
 	bufWriter.Flush()
 }
 
-// validateMessages validates that messages have the required structure
-func (h *Handler) validateMessages(messages []map[string]interface{}) error {
+// ValidateMessages validates that messages have the required structure
+func (h *Handler) ValidateMessages(messages []map[string]interface{}) error {
 	for i, msg := range messages {
 		if msg == nil {
 			return fmt.Errorf("message at index %d is nil", i)

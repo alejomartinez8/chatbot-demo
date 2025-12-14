@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package agui.v1;
+
+import "google/protobuf/struct.proto";
+
+option go_package = "agent-go-ag-ui/gen/agui/v1";
+
+// Message represents an AG-UI message
+message Message {
+  string id = 1;
+  string role = 2;
+  google.protobuf.Value content = 3;
+  string name = 4;
+  google.protobuf.Value tool_calls = 5;
+}
+
+// RunAgentRequest represents the input for running an agent
+message RunAgentRequest {
+  string thread_id = 1;
+  string run_id = 2;
+  google.protobuf.Struct state = 3;
+  repeated Message messages = 4;
+  repeated google.protobuf.Value tools = 5;
+  repeated google.protobuf.Value context = 6;
+  google.protobuf.Struct forwarded_props = 7;
+}
+
+// AGUIEvent represents any AG-UI protocol event
+// Using Struct to allow flexible event representation
+message AGUIEvent {
+  // The event type (e.g., "run_started", "text_message_content", etc.)
+  string type = 1;
+  
+  // The event data as a flexible struct
+  google.protobuf.Struct data = 2;
+}
+
+// AGUIService provides the Connect RPC interface for AG-UI protocol
+service AGUIService {
+  // RunAgent executes an agent and streams AG-UI events
+  rpc RunAgent(RunAgentRequest) returns (stream AGUIEvent);
+}
+
