@@ -90,7 +90,7 @@ agent-go-ag-ui/
 ## Endpoints
 
 - **`POST /sse`** - Server-Sent Events (JSON stream)
-- **`POST /connect`** - Connect RPC (Protobuf stream)
+- **`POST /agui.v1.AGUIService/RunAgent`** - Connect RPC (Protobuf stream)
 
 Both support the same AG-UI protocol events: `RUN_STARTED`, `TEXT_MESSAGE_CONTENT`, `TOOL_CALL_*`, `RUN_FINISHED`, etc.
 
@@ -127,7 +127,8 @@ buf generate
 
 - `google.golang.org/adk` - Agent Development Kit
 - `github.com/ag-ui-protocol/ag-ui/sdks/community/go/pkg/core/events` - AG-UI events
-- `connectrpc.com/connect` - Connect RPC
+- `connectrpc.com/connect` - Connect RPC framework
+- `google.golang.org/genai` - Gemini API client
 - Standard library (HTTP, JSON)
 
 **Note**: Custom SSE encoding (no external SSE library) - format: `data: {json}\n\n`

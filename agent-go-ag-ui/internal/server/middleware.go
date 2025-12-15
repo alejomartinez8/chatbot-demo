@@ -6,11 +6,12 @@ import (
 	"time"
 )
 
-// loggingResponseWriter wraps http.ResponseWriter to capture status code
 type loggingResponseWriter struct {
 	http.ResponseWriter
 	statusCode int
 }
+
+var _ http.Flusher = (*loggingResponseWriter)(nil)
 
 func newLoggingResponseWriter(w http.ResponseWriter) *loggingResponseWriter {
 	return &loggingResponseWriter{w, http.StatusOK}
@@ -19,6 +20,12 @@ func newLoggingResponseWriter(w http.ResponseWriter) *loggingResponseWriter {
 func (lrw *loggingResponseWriter) WriteHeader(code int) {
 	lrw.statusCode = code
 	lrw.ResponseWriter.WriteHeader(code)
+}
+
+func (lrw *loggingResponseWriter) Flush() {
+	if flusher, ok := lrw.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
 }
 
 // Logging logs HTTP requests

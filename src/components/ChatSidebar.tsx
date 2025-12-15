@@ -2,6 +2,9 @@ import { useState, Fragment } from 'react';
 import clsx from 'clsx';
 import { MessageSquare, CopyIcon, RefreshCcwIcon } from 'lucide-react';
 import { useAgentChat } from '@/lib/hooks/useAgentChat';
+import { ButtonGroup } from '@/components/ui/button-group';
+import { Button } from '@/components/ui/button';
+import type { TransportType } from '@/lib/ag-ui/ag-ui-client';
 import {
   Conversation,
   ConversationContent,
@@ -20,11 +23,14 @@ import type { Message as AgUIMessage } from '@ag-ui/core';
 
 export function ChatSidebar() {
   const [input, setInput] = useState<string>('');
+  const [transport, setTransport] = useState<TransportType>('connectrpc');
   
-  // Use the custom hook to manage agent communication
-  const { messages, isLoading, isConnected, sendMessage } = useAgentChat({
-    agentUrl: '/api/agent/sse',
+  const agentUrl = transport === 'http-sse' ? '/api/agent/sse' : '/api/agent';
+  
+  const { messages, isLoading, isConnected, sendMessage, clearMessages } = useAgentChat({
+    agentUrl,
     threadId: 'chat-thread',
+    transport,
   });
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -44,8 +50,8 @@ export function ChatSidebar() {
         'translate-x-0'
       )}
     >
-      <div className="p-5 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-        <div className="flex items-center gap-2">
+      <div className="p-5 border-b border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-between mb-3">
           <h2 className="m-0 text-xl font-semibold text-gray-800">Sidebar Chatbot Demo</h2>
           {isConnected ? (
             <span className="flex items-center gap-1 text-xs text-green-600">
@@ -58,6 +64,33 @@ export function ChatSidebar() {
               Connecting...
             </span>
           )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-600 font-medium">Transport:</span>
+          <ButtonGroup>
+            <Button
+              variant={transport === 'http-sse' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setTransport('http-sse');
+                clearMessages();
+              }}
+              disabled={isLoading}
+            >
+              HTTP/SSE
+            </Button>
+            <Button
+              variant={transport === 'connectrpc' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setTransport('connectrpc');
+                clearMessages();
+              }}
+              disabled={isLoading}
+            >
+              ConnectRPC
+            </Button>
+          </ButtonGroup>
         </div>
       </div>
 

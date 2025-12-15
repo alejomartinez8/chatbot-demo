@@ -14,7 +14,7 @@ Connect RPC is a slim library for building browser- and gRPC-compatible HTTP API
 
 ```mermaid
 flowchart TD
-    Client[Client] -->|POST /connect| Server[HTTP Server]
+    Client[Client] -->|POST /agui.v1.AGUIService/RunAgent| Server[HTTP Server]
     Server --> ConnectHandler[Connect RPC Handler<br/>internal/transport/connectrpc]
     ConnectHandler -->|RunAgent| Adapter[AG-UI Adapter<br/>internal/agui_adapter]
     Adapter -->|Execute| ADKAgent[ADK Agent]
@@ -35,7 +35,7 @@ sequenceDiagram
     participant Adapter as AG-UI Adapter
     participant ADK as ADK Agent
     
-    Client->>Handler: POST /connect<br/>RunAgentInput (Protobuf)
+    Client->>Handler: POST /agui.v1.AGUIService/RunAgent<br/>RunAgentInput (Protobuf)
     Handler->>Handler: Convert Protobuf → agui_adapter.RunAgentInput
     Handler->>Adapter: RunAgent()
     Adapter->>ADK: Execute agent
@@ -105,12 +105,8 @@ func (h *Handler) RunAgent(
 **File:** `internal/server/server.go`
 
 ```go
-// Standard Connect path
 path, handler := aguiv1connect.NewAGUIServiceHandler(connectHandler)
-mux.Handle(path, handler)  // /agui.v1.AGUIService/
-
-// Simple path
-mux.HandleFunc("/connect", handler.ServeHTTP)
+mux.Handle(path, handler)  // Registers /agui.v1.AGUIService/RunAgent
 ```
 
 ## Key Points
@@ -137,7 +133,7 @@ mux.HandleFunc("/connect", handler.ServeHTTP)
 ### Request
 
 ```bash
-curl -X POST http://localhost:8000/connect \
+curl -X POST http://localhost:8000/agui.v1.AGUIService/RunAgent \
   -H "Content-Type: application/json" \
   -d '{
     "thread_id": "thread-123",

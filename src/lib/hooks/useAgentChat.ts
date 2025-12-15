@@ -1,11 +1,12 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import type { RunAgentInput, Message, UserMessage, AssistantMessage } from '@ag-ui/core';
-import { AgUIClient } from '@/lib/ag-ui/ag-ui-client';
+import { AgUIClient, type TransportType } from '@/lib/ag-ui/ag-ui-client';
 import type { TransportEvent } from '@/lib/ag-ui/types/ag-ui-events';
 
 interface UseAgentChatOptions {
   agentUrl: string;
   threadId?: string;
+  transport?: TransportType;
 }
 
 interface UseAgentChatReturn {
@@ -20,6 +21,7 @@ interface UseAgentChatReturn {
 export function useAgentChat({
   agentUrl,
   threadId = 'default-thread',
+  transport = 'http-sse',
 }: UseAgentChatOptions): UseAgentChatReturn {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -78,6 +80,7 @@ export function useAgentChat({
   useEffect(() => {
     const client = new AgUIClient({
       url: agentUrl,
+      transport,
       onEvent: handleEvent,
       onStateChange: (state) => {
         setIsConnected(state === 'connected');
@@ -107,7 +110,7 @@ export function useAgentChat({
       client.disconnect();
       clientRef.current = null;
     };
-  }, [agentUrl, handleEvent]);
+  }, [agentUrl, transport, handleEvent]);
 
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || isLoading || !clientRef.current) return;

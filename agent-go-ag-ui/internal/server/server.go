@@ -15,8 +15,6 @@ import (
 const (
 	// EndpointSSE is the endpoint for Server-Sent Events transport
 	EndpointSSE = "/sse"
-	// EndpointConnect is the endpoint for Connect RPC transport
-	EndpointConnect = "/connect"
 )
 
 // Server represents the HTTP server
@@ -33,12 +31,9 @@ func New(cfg *config.Config, sseHandler *sse.Handler, connectHandler *connectrpc
 	// SSE endpoint (explicit)
 	mux.HandleFunc(EndpointSSE, sseHandler.HandleAgentRequest)
 
-	// Connect RPC endpoint
 	if connectHandler != nil {
 		path, handler := aguiv1connect.NewAGUIServiceHandler(connectHandler)
 		mux.Handle(path, handler)
-		// Also register explicit endpoint for convenience
-		mux.HandleFunc(EndpointConnect, handler.ServeHTTP)
 	}
 
 	return &Server{
@@ -56,9 +51,8 @@ func (s *Server) Start() error {
 	log.Printf("Starting AG-UI server on port %s", s.httpServer.Addr)
 	log.Printf("SSE endpoint: http://localhost:%s%s", s.httpServer.Addr, EndpointSSE)
 	if s.connectHandler != nil {
-		log.Printf("Connect RPC endpoint: http://localhost:%s%s", s.httpServer.Addr, EndpointConnect)
-	} else {
-		log.Printf("Connect RPC endpoint: http://localhost:%s%s (not configured)", s.httpServer.Addr, EndpointConnect)
+		path, _ := aguiv1connect.NewAGUIServiceHandler(s.connectHandler)
+		log.Printf("Connect RPC endpoint: http://localhost:%s%s", s.httpServer.Addr, path)
 	}
 	return s.httpServer.ListenAndServe()
 }

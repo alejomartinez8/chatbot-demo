@@ -5,7 +5,8 @@ A modern React + Vite chatbot application that connects to agents supporting the
 ## Features
 
 - 🤖 **AG-UI Protocol Integration** - Connects to any AG-UI compatible agent
-- 🔌 **Observable Streaming** - Real-time responses via Server-Sent Events
+- 🔌 **Multiple Transports** - Server-Sent Events (SSE) and ConnectRPC support
+- 🚀 **Type-Safe RPC** - ConnectRPC with Protocol Buffers for type safety
 - 💚 **Connection Health Check** - Automatic status monitoring
 - 🎨 **Modern UI** - React 19 + Tailwind CSS v4 + shadcn/ui components
 - 🧩 **AI SDK Elements** - Enhanced conversation UI with auto-scroll
@@ -162,7 +163,9 @@ yarn preview
 - Tailwind CSS v4
 - shadcn/ui - Component library
 - AI SDK Elements - Conversation components
-- @ag-ui/core (types for AG-UI protocol)
+- @ag-ui/core - AG-UI protocol types
+- @connectrpc/connect - ConnectRPC client
+- @bufbuild/protobuf - Protocol Buffers support
 
 ### Agents
 
