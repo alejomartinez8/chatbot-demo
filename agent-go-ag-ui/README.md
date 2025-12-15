@@ -59,7 +59,7 @@ sequenceDiagram
     participant ADK as ADK Agent
     
     Client->>Transport: POST /sse or /connect<br/>RunAgentInput
-    Transport->>Transport: Convert to domain.RunAgentInput
+    Transport->>Transport: Convert to agui_adapter.RunAgentInput
     Transport->>Adapter: RunAgent()
     Adapter->>ADK: Execute agent
     ADK-->>Adapter: ADK events

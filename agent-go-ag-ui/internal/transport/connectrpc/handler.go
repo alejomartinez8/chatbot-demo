@@ -13,24 +13,40 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	"agent-go-ag-ui/internal/agui_adapter"
-	"agent-go-ag-ui/internal/domain"
 	"agent-go-ag-ui/internal/transport"
 )
 
 // Handler handles Connect RPC requests for the AG-UI protocol
+// Only responsible for Protobuf serialization - protocol logic is in agui_adapter
 type Handler struct {
 	adapter  *agui_adapter.AGUIAdapter
 	stateMgr *transport.StateManager
-	appName  string
 }
 
 // NewHandler creates a new Connect RPC handler
-func NewHandler(adapter *agui_adapter.AGUIAdapter, stateMgr *transport.StateManager, appName string) *Handler {
+func NewHandler(adapter *agui_adapter.AGUIAdapter, stateMgr *transport.StateManager) *Handler {
 	return &Handler{
 		adapter:  adapter,
 		stateMgr: stateMgr,
-		appName:  appName,
 	}
+}
+
+// connectEventSender implements agui_adapter.EventSender for Connect RPC transport
+type connectEventSender struct {
+	stream *connect.ServerStream[aguiv1.AGUIEvent]
+}
+
+func (c *connectEventSender) SendEvent(event events.Event) error {
+	aguiEvent, err := convertAGUIEvent(event)
+	if err != nil {
+		return fmt.Errorf("failed to convert event: %w", err)
+	}
+	return c.stream.Send(aguiEvent)
+}
+
+func (c *connectEventSender) SendRunError(runID string, err error) error {
+	errorEvent := events.NewRunErrorEvent(err.Error(), events.WithRunID(runID))
+	return c.SendEvent(errorEvent)
 }
 
 // RunAgent implements the AGUIService.RunAgent RPC method
@@ -39,138 +55,32 @@ func (h *Handler) RunAgent(
 	req *aguiv1.RunAgentInput,
 	stream *connect.ServerStream[aguiv1.AGUIEvent],
 ) error {
-	// Convert protobuf RunAgentInput to domain.RunAgentInput
+	// Convert protobuf RunAgentInput to agui_adapter.RunAgentInput
 	runInput, err := h.convertRunAgentInput(req)
 	if err != nil {
 		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("failed to convert request: %w", err))
 	}
 
-	// Use IDs from input or generate new ones
-	threadID := runInput.ThreadID
-	if threadID == "" {
-		threadID = events.GenerateThreadID()
-	}
-	runID := runInput.RunID
-	if runID == "" {
-		runID = events.GenerateRunID()
+	// Validate input early (fail fast)
+	if err := runInput.Validate(); err != nil {
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("validation failed: %w", err))
 	}
 
-	// Validate messages
-	if err := h.validateMessages(runInput.Messages); err != nil {
-		errorEvent := events.NewRunErrorEvent("Invalid messages: "+err.Error(), events.WithRunID(runID))
-		aguiEvent, err := h.convertAGUIEvent(errorEvent)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to convert error event: %w", err))
-		}
-		if err := stream.Send(aguiEvent); err != nil {
-			return fmt.Errorf("failed to send error event: %w", err)
-		}
-		return nil
-	}
+	// Create Connect RPC event sender
+	sender := &connectEventSender{stream: stream}
 
-	// Handle state persistence: merge incoming state with existing state for this thread
-	mergedState := h.stateMgr.Merge(threadID, runInput.State)
-
-	// If no messages, send current state snapshot according to AG-UI protocol
-	if len(runInput.Messages) == 0 {
-		stateSnapshot := events.NewStateSnapshotEvent(mergedState)
-		aguiEvent, err := h.convertAGUIEvent(stateSnapshot)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to convert state snapshot: %w", err))
-		}
-		if err := stream.Send(aguiEvent); err != nil {
-			return fmt.Errorf("failed to send state snapshot: %w", err)
-		}
-		return nil
-	}
-
-	// Send RUN_STARTED event
-	runStarted := events.NewRunStartedEvent(threadID, runID)
-	aguiEvent, err := h.convertAGUIEvent(runStarted)
-	if err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to convert run started event: %w", err))
-	}
-	if err := stream.Send(aguiEvent); err != nil {
-		return fmt.Errorf("failed to send run started event: %w", err)
-	}
-
-	// Generate message ID for this response
-	messageID := events.GenerateMessageID()
-
-	// Send TEXT_MESSAGE_START event
-	textStart := events.NewTextMessageStartEvent(messageID, events.WithRole("assistant"))
-	aguiEvent, err = h.convertAGUIEvent(textStart)
-	if err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to convert text message start event: %w", err))
-	}
-	if err := stream.Send(aguiEvent); err != nil {
-		return fmt.Errorf("failed to send text message start event: %w", err)
-	}
-
-	// Run the agent using the shared adapter
-	eventChan, err := h.adapter.RunAgent(ctx, runInput, threadID, runID, messageID, "demo_user")
-	if err != nil {
-		// Send TEXT_MESSAGE_END before RUN_ERROR if message was started
-		textEnd := events.NewTextMessageEndEvent(messageID)
-		aguiEvent, err := h.convertAGUIEvent(textEnd)
-		if err == nil {
-			stream.Send(aguiEvent)
-		}
-
-		// Send error event
-		errorEvent := events.NewRunErrorEvent(err.Error(), events.WithRunID(runID))
-		aguiEvent, err = h.convertAGUIEvent(errorEvent)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to convert error event: %w", err))
-		}
-		if err := stream.Send(aguiEvent); err != nil {
-			return fmt.Errorf("failed to send error event: %w", err)
-		}
-		return nil
-	}
-
-	// Stream events as they come from the adapter
-	messageStarted := true
-	for event := range eventChan {
-		// Convert and send event
-		aguiEvent, err := h.convertAGUIEvent(event)
-		if err != nil {
-			log.Printf("Failed to convert event: %v", err)
-			continue
-		}
-		if err := stream.Send(aguiEvent); err != nil {
-			return fmt.Errorf("failed to send event: %w", err)
-		}
-		messageStarted = true
-	}
-
-	// Send TEXT_MESSAGE_END event
-	if messageStarted {
-		textEnd := events.NewTextMessageEndEvent(messageID)
-		aguiEvent, err := h.convertAGUIEvent(textEnd)
-		if err != nil {
-			return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to convert text message end event: %w", err))
-		}
-		if err := stream.Send(aguiEvent); err != nil {
-			return fmt.Errorf("failed to send text message end event: %w", err)
-		}
-	}
-
-	// Send RUN_FINISHED event
-	runFinished := events.NewRunFinishedEvent(threadID, runID)
-	aguiEvent, err = h.convertAGUIEvent(runFinished)
-	if err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to convert run finished event: %w", err))
-	}
-	if err := stream.Send(aguiEvent); err != nil {
-		return fmt.Errorf("failed to send run finished event: %w", err)
+	// Delegate protocol logic to adapter
+	if err := h.adapter.RunAgentProtocol(ctx, runInput, h.stateMgr, sender); err != nil {
+		log.Printf("Error running agent protocol: %v", err)
+		// Error already sent via sender.SendRunError, but we need to return a Connect error
+		return connect.NewError(connect.CodeInternal, err)
 	}
 
 	return nil
 }
 
-// convertRunAgentInput converts a protobuf RunAgentInput to domain.RunAgentInput
-func (h *Handler) convertRunAgentInput(req *aguiv1.RunAgentInput) (*domain.RunAgentInput, error) {
+// convertRunAgentInput converts a protobuf RunAgentInput to agui_adapter.RunAgentInput
+func (h *Handler) convertRunAgentInput(req *aguiv1.RunAgentInput) (*agui_adapter.RunAgentInput, error) {
 	// Convert state
 	state := make(map[string]interface{})
 	if req.State != nil {
@@ -228,7 +138,7 @@ func (h *Handler) convertRunAgentInput(req *aguiv1.RunAgentInput) (*domain.RunAg
 		forwardedProps = req.ForwardedProps.AsMap()
 	}
 
-	return &domain.RunAgentInput{
+	return &agui_adapter.RunAgentInput{
 		ThreadID:       req.ThreadId,
 		RunID:          req.RunId,
 		State:          state,
@@ -240,7 +150,7 @@ func (h *Handler) convertRunAgentInput(req *aguiv1.RunAgentInput) (*domain.RunAg
 }
 
 // convertAGUIEvent converts an AG-UI event to protobuf AGUIEvent
-func (h *Handler) convertAGUIEvent(event events.Event) (*aguiv1.AGUIEvent, error) {
+func convertAGUIEvent(event events.Event) (*aguiv1.AGUIEvent, error) {
 	// Serialize event to JSON
 	eventJSON, err := json.Marshal(event)
 	if err != nil {
@@ -270,58 +180,3 @@ func (h *Handler) convertAGUIEvent(event events.Event) (*aguiv1.AGUIEvent, error
 		Data: eventStruct,
 	}, nil
 }
-
-// validateMessages validates that messages have the required structure
-func (h *Handler) validateMessages(messages []map[string]interface{}) error {
-	for i, msg := range messages {
-		if msg == nil {
-			return fmt.Errorf("message at index %d is nil", i)
-		}
-
-		// Check for required fields
-		id, hasID := msg["id"]
-		if !hasID || id == nil || id == "" {
-			return fmt.Errorf("message at index %d missing required field 'id'", i)
-		}
-
-		role, hasRole := msg["role"]
-		if !hasRole || role == nil {
-			return fmt.Errorf("message at index %d missing required field 'role'", i)
-		}
-
-		roleStr, ok := role.(string)
-		if !ok {
-			return fmt.Errorf("message at index %d has invalid 'role' type (expected string)", i)
-		}
-
-		// Validate role value
-		validRoles := map[string]bool{
-			"user":      true,
-			"assistant": true,
-			"system":    true,
-			"developer": true,
-			"tool":      true,
-		}
-		if !validRoles[roleStr] {
-			return fmt.Errorf("message at index %d has invalid 'role' value: %s", i, roleStr)
-		}
-
-		// Check for content field (required for user and assistant messages)
-		if roleStr == "user" || roleStr == "assistant" {
-			content, hasContent := msg["content"]
-			if !hasContent || content == nil {
-				return fmt.Errorf("message at index %d missing required field 'content' for role '%s'", i, roleStr)
-			}
-
-			// Content should be a string or array
-			if _, ok := content.(string); !ok {
-				if _, ok := content.([]interface{}); !ok {
-					return fmt.Errorf("message at index %d has invalid 'content' type (expected string or array)", i)
-				}
-			}
-		}
-	}
-
-	return nil
-}
-

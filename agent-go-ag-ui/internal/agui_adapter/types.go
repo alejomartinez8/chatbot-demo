@@ -1,4 +1,4 @@
-package domain
+package agui_adapter
 
 import (
 	"encoding/json"
@@ -22,12 +22,15 @@ type RunAgentInput struct {
 }
 
 // Validate validates the RunAgentInput structure
+// This should be called early in the request flow (in handlers) before processing
 func (r *RunAgentInput) Validate() error {
 	// ThreadID and RunID are optional (will be generated if missing)
 	// State, Tools, Context, and ForwardedProps are optional
 
-	// Messages validation is done separately in handler.validateMessages
-	// to provide more detailed error messages
+	// Validate messages (most important validation)
+	if err := ValidateMessages(r.Messages); err != nil {
+		return fmt.Errorf("messages validation failed: %w", err)
+	}
 
 	return nil
 }

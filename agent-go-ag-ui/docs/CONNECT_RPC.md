@@ -36,7 +36,7 @@ sequenceDiagram
     participant ADK as ADK Agent
     
     Client->>Handler: POST /connect<br/>RunAgentInput (Protobuf)
-    Handler->>Handler: Convert Protobuf → domain.RunAgentInput
+    Handler->>Handler: Convert Protobuf → agui_adapter.RunAgentInput
     Handler->>Adapter: RunAgent()
     Adapter->>ADK: Execute agent
     ADK-->>Adapter: ADK events
@@ -84,7 +84,7 @@ func (h *Handler) RunAgent(
     req *aguiv1.RunAgentInput,
     stream *connect.ServerStream[aguiv1.AGUIEvent],
 ) error {
-    // 1. Convert Protobuf → domain.RunAgentInput
+    // 1. Convert Protobuf → agui_adapter.RunAgentInput
     runInput, err := h.convertRunAgentInput(req)
     
     // 2. Use shared adapter (same as SSE)

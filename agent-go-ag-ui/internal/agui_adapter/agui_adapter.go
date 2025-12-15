@@ -13,8 +13,8 @@ import (
 	adksession "google.golang.org/adk/session"
 	"google.golang.org/genai"
 
-	"agent-go-ag-ui/internal/domain"
 	"agent-go-ag-ui/internal/session"
+	"agent-go-ag-ui/internal/transport"
 )
 
 // AGUIAdapter is the SINGLE source of truth for ADK → AG-UI event conversion
@@ -39,7 +39,7 @@ func NewAGUIAdapter(agent agent.Agent, sessionMgr *session.Manager, appName stri
 // This is the SINGLE source of truth for ADK → AG-UI conversion
 func (a *AGUIAdapter) RunAgent(
 	ctx context.Context,
-	input *domain.RunAgentInput,
+	input *RunAgentInput,
 	threadID, runID, messageID, userID string,
 ) (<-chan events.Event, error) {
 	ctx, cancel := context.WithTimeout(ctx, a.timeout)
@@ -186,4 +186,90 @@ func (a *AGUIAdapter) translateADKEvent(
 			delete(startedToolCalls, agUIToolCallID)
 		}
 	}
+}
+
+// EventSender defines the interface for sending events (SSE or Connect RPC)
+// This allows the adapter to be transport-agnostic
+type EventSender interface {
+	SendEvent(event events.Event) error
+	SendRunError(runID string, err error) error
+}
+
+// RunAgentProtocol orchestrates the complete AG-UI protocol flow
+// This is the single source of truth for AG-UI protocol logic
+// Transport handlers only need to parse requests and serialize events
+func (a *AGUIAdapter) RunAgentProtocol(
+	ctx context.Context,
+	input *RunAgentInput,
+	stateMgr *transport.StateManager,
+	sender EventSender,
+) error {
+	// Generate IDs if not provided
+	threadID := input.ThreadID
+	if threadID == "" {
+		threadID = events.GenerateThreadID()
+	}
+	runID := input.RunID
+	if runID == "" {
+		runID = events.GenerateRunID()
+	}
+
+	// Note: Validation is done in handlers before calling RunAgentProtocol
+	// This ensures fail-fast behavior and proper HTTP error codes
+
+	// Handle state persistence: merge incoming state with existing state for this thread
+	mergedState := stateMgr.Merge(threadID, input.State)
+
+	// If no messages, send current state snapshot according to AG-UI protocol
+	if len(input.Messages) == 0 {
+		stateSnapshot := events.NewStateSnapshotEvent(mergedState)
+		return sender.SendEvent(stateSnapshot)
+	}
+
+	// Send RUN_STARTED event
+	runStarted := events.NewRunStartedEvent(threadID, runID)
+	if err := sender.SendEvent(runStarted); err != nil {
+		return fmt.Errorf("failed to send RUN_STARTED: %w", err)
+	}
+
+	// Generate message ID for this response
+	messageID := events.GenerateMessageID()
+
+	// Send TEXT_MESSAGE_START event
+	textStart := events.NewTextMessageStartEvent(messageID, events.WithRole("assistant"))
+	if err := sender.SendEvent(textStart); err != nil {
+		return fmt.Errorf("failed to send TEXT_MESSAGE_START: %w", err)
+	}
+
+	// Run the agent and stream responses
+	eventChan, err := a.RunAgent(ctx, input, threadID, runID, messageID, "demo_user")
+	if err != nil {
+		// If message was started, we must send TEXT_MESSAGE_END before RUN_ERROR
+		textEnd := events.NewTextMessageEndEvent(messageID)
+		sender.SendEvent(textEnd) // Best effort, ignore error
+
+		// Send error event
+		return sender.SendRunError(runID, fmt.Errorf("agent execution failed: %w", err))
+	}
+
+	// Stream events from the adapter
+	for event := range eventChan {
+		if err := sender.SendEvent(event); err != nil {
+			return fmt.Errorf("failed to send event: %w", err)
+		}
+	}
+
+	// Send TEXT_MESSAGE_END event
+	textEnd := events.NewTextMessageEndEvent(messageID)
+	if err := sender.SendEvent(textEnd); err != nil {
+		return fmt.Errorf("failed to send TEXT_MESSAGE_END: %w", err)
+	}
+
+	// Send RUN_FINISHED event
+	runFinished := events.NewRunFinishedEvent(threadID, runID)
+	if err := sender.SendEvent(runFinished); err != nil {
+		return fmt.Errorf("failed to send RUN_FINISHED: %w", err)
+	}
+
+	return nil
 }
