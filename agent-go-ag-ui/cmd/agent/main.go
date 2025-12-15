@@ -34,10 +34,11 @@ func main() {
 	sessionMgr := session.NewManager()
 	stateMgr := agui.NewStateManager()
 	streamer := agui.NewStreamer(adkAgent, sessionMgr, cfg.AppName)
-	h := agui.NewHandler(adkAgent, streamer, stateMgr, cfg.AppName)
+	sseHandler := agui.NewHandler(adkAgent, streamer, stateMgr, cfg.AppName)
+	connectHandler := agui.NewConnectHandler(adkAgent, streamer, stateMgr, cfg.AppName)
 
 	// Create and start server
-	srv := server.New(cfg, h)
+	srv := server.New(cfg, sseHandler, connectHandler)
 
 	// Handle graceful shutdown
 	sigChan := make(chan os.Signal, 1)

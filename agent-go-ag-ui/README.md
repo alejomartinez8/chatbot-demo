@@ -5,10 +5,11 @@ A Go-based agent using Google's Agent Development Kit (ADK) with AG-UI protocol 
 ## Features
 
 - 🤖 **Google ADK Integration** - Uses the official ADK Go library
-- 🔌 **AG-UI Protocol Support** - HTTP/SSE communication with frontend
+- 🔌 **AG-UI Protocol Support** - Dual transport support (SSE and Connect RPC)
+- 🚀 **Connect RPC** - Type-safe RPC with Protocol Buffers (gRPC-compatible)
+- 💨 **Server-Sent Events** - Real-time streaming via SSE
 - ⏰ **Time Agent** - Tells the current time in specified cities
 - 🔍 **Google Search Tool** - Uses Google Search for location/timezone lookup
-- 💨 **Streaming Responses** - Real-time streaming via Server-Sent Events
 
 ## Prerequisites
 
@@ -95,14 +96,30 @@ agent-go-ag-ui/
 ├── internal/
 │   ├── agent/                   # Agent creation and configuration
 │   ├── agui/                    # AG-UI protocol implementation
-│   │   ├── handler.go          # HTTP handler for AG-UI protocol
+│   │   ├── handler.go          # HTTP handler for SSE endpoint
+│   │   ├── connect_handler.go  # Connect RPC handler
 │   │   ├── streamer.go         # Agent response streaming
 │   │   ├── state.go            # State management per thread
 │   │   └── types.go            # AG-UI protocol types (RunAgentInput, etc.)
 │   ├── config/                  # Configuration management
 │   ├── server/                  # HTTP server setup and lifecycle
 │   └── session/                 # Session management (ADK)
+├── proto/                       # Protocol Buffer definitions
+│   └── agui/
+│       └── v1/
+│           └── agui.proto      # Service and message definitions
+├── gen/                         # Generated code (from protobuf)
+│   └── proto/
+│       └── agui/
+│           └── v1/
+│               ├── agui.pb.go  # Generated message types
+│               └── aguiv1connect/
+│                   └── agui.connect.go  # Generated Connect handlers
+├── docs/                        # Documentation
+│   └── CONNECT_RPC.md          # Connect RPC implementation guide
 ├── scripts/                     # Build and run scripts
+├── buf.yaml                     # Buf configuration
+├── buf.gen.yaml                 # Buf code generation config
 ├── go.mod                       # Go module definition
 ├── go.sum                       # Dependency checksums
 └── README.md                    # This file
@@ -119,19 +136,30 @@ The agent is created using `llmagent.New()` with:
 
 ### AG-UI Protocol
 
-The server implements the AG-UI protocol following the [official specification](https://docs.ag-ui.com):
-- **Endpoint**: `POST /` (root path)
-- **Protocol**: HTTP with Server-Sent Events (SSE)
-- **Input**: `RunAgentInput` JSON format
-- **Output**: SSE stream with AG-UI events:
-  - `STATE_SNAPSHOT` - Complete state sent on initial connection (when messages array is empty)
-  - `RUN_STARTED` - Indicates start of agent execution
-  - `TEXT_MESSAGE_START` - Indicates start of response
-  - `TEXT_MESSAGE_CONTENT` - Streaming text chunks (delta)
-  - `TEXT_MESSAGE_END` - Indicates end of response
-  - `RUN_FINISHED` - Indicates completion of agent execution
-  - `RUN_ERROR` - Error event if execution fails
-  - `TOOL_CALL_START`, `TOOL_CALL_ARGS`, `TOOL_CALL_RESULT`, `TOOL_CALL_END` - Tool execution events
+The server implements the AG-UI protocol following the [official specification](https://docs.ag-ui.com) with **dual transport support**:
+
+#### Endpoints
+
+- **`POST /sse`** - Server-Sent Events transport (HTTP/1.1 + SSE)
+- **`POST /connect`** - Connect RPC transport (HTTP/1.1, HTTP/2, gRPC-compatible)
+
+Both endpoints support the same AG-UI protocol events:
+- `STATE_SNAPSHOT` - Complete state sent on initial connection (when messages array is empty)
+- `RUN_STARTED` - Indicates start of agent execution
+- `TEXT_MESSAGE_START` - Indicates start of response
+- `TEXT_MESSAGE_CONTENT` - Streaming text chunks (delta)
+- `TEXT_MESSAGE_END` - Indicates end of response
+- `RUN_FINISHED` - Indicates completion of agent execution
+- `RUN_ERROR` - Error event if execution fails
+- `TOOL_CALL_START`, `TOOL_CALL_ARGS`, `TOOL_CALL_RESULT`, `TOOL_CALL_END` - Tool execution events
+
+**Input**: `RunAgentInput` JSON format (same for both endpoints)
+
+**Output**: 
+- SSE endpoint: Server-Sent Events stream
+- Connect RPC endpoint: Protobuf stream (JSON or binary)
+
+> 📖 **For detailed information about the Connect RPC implementation, see [docs/CONNECT_RPC.md](docs/CONNECT_RPC.md)**
 
 ### Type Safety
 
@@ -195,7 +223,25 @@ Key dependencies:
 - `google.golang.org/adk` - Agent Development Kit
 - `google.golang.org/genai` - Gemini API client
 - `github.com/ag-ui-protocol/ag-ui/sdks/community/go` - Official AG-UI Go SDK
+- `connectrpc.com/connect` - Connect RPC library
+- `google.golang.org/protobuf` - Protocol Buffers for Go
 - Standard library packages for HTTP and JSON
+
+### Code Generation
+
+The project uses Protocol Buffers and Buf for code generation:
+
+```bash
+# Install code generation tools
+go install github.com/bufbuild/buf/cmd/buf@latest
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
+
+# Generate code from .proto files
+buf generate
+```
+
+Generated code is stored in `gen/` directory (gitignored).
 
 ## Troubleshooting
 
@@ -230,11 +276,23 @@ PORT=8080
 - Check that CORS headers are being sent (they should be automatic)
 - Verify the frontend proxy configuration
 
+## Documentation
+
+- **[Connect RPC Implementation Guide](docs/CONNECT_RPC.md)** - Comprehensive guide to the Connect RPC implementation, including architecture, data flow, and implementation details.
+
 ## API Reference
 
-### POST /
+### POST /sse
 
-Main endpoint for AG-UI protocol communication.
+Server-Sent Events endpoint for AG-UI protocol communication.
+
+### POST /connect
+
+Connect RPC endpoint for AG-UI protocol communication (gRPC-compatible).
+
+### POST / (Legacy)
+
+Legacy endpoint (redirects to `/sse`). Use `/sse` or `/connect` explicitly.
 
 **Request:**
 ```json

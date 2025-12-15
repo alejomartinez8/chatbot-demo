@@ -17,6 +17,9 @@ agent
 # Go workspace file
 go.work
 
+# Generated code
+gen/
+
 # Environment files
 .env
 .env.local

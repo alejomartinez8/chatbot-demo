@@ -23,7 +23,7 @@ export function ChatSidebar() {
   
   // Use the custom hook to manage agent communication
   const { messages, isLoading, isConnected, sendMessage } = useAgentChat({
-    agentUrl: '/api/agent/',
+    agentUrl: '/api/agent/sse',
     threadId: 'chat-thread',
   });
 

@@ -3,9 +3,11 @@ module agent-go-ag-ui
 go 1.25.5
 
 require (
+	connectrpc.com/connect v1.19.1
 	github.com/ag-ui-protocol/ag-ui/sdks/community/go v0.0.0-20251209183222-5f9a819f383e
 	google.golang.org/adk v0.2.0
 	google.golang.org/genai v1.39.0
+	google.golang.org/protobuf v1.36.11
 )
 
 require (
@@ -35,7 +37,6 @@ require (
 	golang.org/x/text v0.31.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251014184007-4626949a642f // indirect
 	google.golang.org/grpc v1.76.0 // indirect
-	google.golang.org/protobuf v1.36.10 // indirect
 	rsc.io/omap v1.2.0 // indirect
 	rsc.io/ordered v1.1.1 // indirect
 )
