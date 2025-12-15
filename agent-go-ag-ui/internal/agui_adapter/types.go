@@ -1,4 +1,4 @@
-package agui
+package agui_adapter
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"github.com/ag-ui-protocol/ag-ui/sdks/community/go/pkg/core/events"
 )
 
-// Re-export Message type from SDK for convenience
+// Re-export Message type from SDK for convenience (no duplication)
 type Message = events.Message
 
 // RunAgentInput represents the AG-UI protocol input format
@@ -22,12 +22,15 @@ type RunAgentInput struct {
 }
 
 // Validate validates the RunAgentInput structure
+// This should be called early in the request flow (in handlers) before processing
 func (r *RunAgentInput) Validate() error {
 	// ThreadID and RunID are optional (will be generated if missing)
 	// State, Tools, Context, and ForwardedProps are optional
 
-	// Messages validation is done separately in handler.validateMessages
-	// to provide more detailed error messages
+	// Validate messages (most important validation)
+	if err := ValidateMessages(r.Messages); err != nil {
+		return fmt.Errorf("messages validation failed: %w", err)
+	}
 
 	return nil
 }

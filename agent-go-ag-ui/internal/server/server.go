@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"agent-go-ag-ui/gen/proto/agui/v1/aguiv1connect"
-	"agent-go-ag-ui/internal/agui"
 	"agent-go-ag-ui/internal/config"
+	"agent-go-ag-ui/internal/transport/connectrpc"
+	"agent-go-ag-ui/internal/transport/sse"
 )
 
 const (
@@ -21,12 +22,12 @@ const (
 // Server represents the HTTP server
 type Server struct {
 	httpServer     *http.Server
-	sseHandler     *agui.Handler
-	connectHandler *agui.ConnectHandler
+	sseHandler     *sse.Handler
+	connectHandler *connectrpc.Handler
 }
 
 // New creates a new server instance with multiple transport endpoints
-func New(cfg *config.Config, sseHandler *agui.Handler, connectHandler *agui.ConnectHandler) *Server {
+func New(cfg *config.Config, sseHandler *sse.Handler, connectHandler *connectrpc.Handler) *Server {
 	mux := http.NewServeMux()
 
 	// SSE endpoint (explicit)
