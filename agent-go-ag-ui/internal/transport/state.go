@@ -1,4 +1,4 @@
-package agui
+package transport
 
 import (
 	"sync"
@@ -124,3 +124,4 @@ func (m *StateManager) Cleanup(olderThan time.Duration) int {
 
 	return removed
 }
+

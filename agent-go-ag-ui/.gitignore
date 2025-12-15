@@ -8,8 +8,9 @@
 # Test binary
 *.test
 
-# Build binary
+# Build binaries
 agent
+server
 
 # Coverage output
 *.out

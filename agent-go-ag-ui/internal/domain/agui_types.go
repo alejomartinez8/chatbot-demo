@@ -1,4 +1,4 @@
-package agui
+package domain
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"github.com/ag-ui-protocol/ag-ui/sdks/community/go/pkg/core/events"
 )
 
-// Re-export Message type from SDK for convenience
+// Re-export Message type from SDK for convenience (no duplication)
 type Message = events.Message
 
 // RunAgentInput represents the AG-UI protocol input format
